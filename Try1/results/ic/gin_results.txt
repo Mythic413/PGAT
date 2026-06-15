@@ -1,0 +1,13 @@
+GIN IC EXPERIMENT RESULTS
+==================================================
+Best Epoch: 967
+Best Validation MAE: 20.531956
+
+Test Metrics
+--------------------
+MAE: 20.838774
+RMSE: 30.287656
+R2: -0.054767
+Spearman: 0.557053
+NDCG@10: 0.729419
+Precision@10: 0.300000

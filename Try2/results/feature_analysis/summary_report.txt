@@ -1,0 +1,45 @@
+======================================================================
+ALL NODES (N=1000)
+======================================================================
+
+IC Top Features:
+  #1 out_degree (rho=+0.7566)
+  #2 degree (rho=+0.5977)
+  #3 in_degree (rho=+0.3510)
+  #4 activity_count (rho=+0.2771)
+  #5 activity_span (rho=+0.2660)
+
+LT Top Features:
+  #1 out_degree (rho=+0.7381)
+  #2 degree (rho=+0.5796)
+  #3 in_degree (rho=+0.3356)
+  #4 activity_count (rho=+0.2782)
+  #5 activity_span (rho=+0.2760)
+
+IC–LT Rank Stability:
+  rho = 1.0000
+  p   = 0.0000e+00
+
+
+======================================================================
+TRAIN NODES (N=700)
+======================================================================
+
+IC Top Features:
+  #1 out_degree (rho=+0.7619)
+  #2 degree (rho=+0.6019)
+  #3 in_degree (rho=+0.3551)
+  #4 activity_span (rho=+0.2620)
+  #5 activity_count (rho=+0.2586)
+
+LT Top Features:
+  #1 out_degree (rho=+0.7442)
+  #2 degree (rho=+0.5890)
+  #3 in_degree (rho=+0.3442)
+  #4 activity_span (rho=+0.2675)
+  #5 activity_count (rho=+0.2583)
+
+IC–LT Rank Stability:
+  rho = 0.9833
+  p   = 1.9362e-06
+

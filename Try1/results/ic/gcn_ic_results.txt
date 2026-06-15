@@ -1,0 +1,13 @@
+GCN IC EXPERIMENT RESULTS
+==================================================
+Best Epoch: 1000
+Best Validation MAE: 24.719479
+
+Test Metrics
+--------------------
+MAE: 23.407791
+RMSE: 34.528098
+R2: -0.370788
+Spearman: 0.321305
+NDCG@10: 0.577843
+Precision@10: 0.200000

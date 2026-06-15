@@ -1,0 +1,32 @@
+VANILLA PGAT IC RESULTS
+============================================================
+
+Best Epoch: 74
+Best Validation MAE: 4.113091
+
+Regression Metrics
+MAE: 5.625539
+RMSE: 10.427214
+R2: 0.500145
+Spearman: 0.700809
+KendallTau: 0.518112
+
+Ranking Metrics
+Precision@10: 0.600000
+Precision@20: 0.750000
+Recall@10: 0.600000
+Recall@20: 0.750000
+NDCG@10: 0.763238
+NDCG@20: 0.783458
+Top10Overlap: 6.000000
+Top20Overlap: 15.000000
+
+Elite Diagnostics
+Top1_MAE: 77.974586
+Top5_MAE: 42.178062
+Top10_MAE: 28.369192
+Top1_MSE: 6080.036133
+Top5_MSE: 2206.776855
+Top10_MSE: 1260.909180
+P95_MAE: 30.833004
+P95_MSE: 1470.828735

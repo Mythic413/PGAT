@@ -1,0 +1,23 @@
+PGAT IC RESULTS
+==================================================
+
+Best Epoch: 748
+Best Validation MAE: 9.282394
+
+Test Metrics
+--------------------
+MAE: 9.991121
+RMSE: 12.893615
+R2: 0.808850
+Spearman: 0.884333
+NDCG@10: 0.924171
+Precision@10: 0.700000
+
+GCN Comparison
+--------------------
+MAE: GCN=23.407800, PGAT=9.991121, Delta=-13.416679
+RMSE: GCN=34.528100, PGAT=12.893615, Delta=-21.634485
+R2: GCN=-0.370800, PGAT=0.808850, Delta=1.179650
+Spearman: GCN=0.321300, PGAT=0.884333, Delta=0.563033
+NDCG@10: GCN=0.577800, PGAT=0.924171, Delta=0.346371
+Precision@10: GCN=0.200000, PGAT=0.700000, Delta=0.500000

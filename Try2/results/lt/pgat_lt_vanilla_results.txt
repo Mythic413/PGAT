@@ -1,0 +1,32 @@
+VANILLA PGAT LT RESULTS
+============================================================
+
+Best Epoch: 178
+Best Validation MAE: 5.907985
+
+Regression Metrics
+MAE: 8.773910
+RMSE: 16.047848
+R2: 0.446004
+Spearman: 0.652626
+KendallTau: 0.476381
+
+Ranking Metrics
+Precision@10: 0.700000
+Precision@20: 0.600000
+Recall@10: 0.700000
+Recall@20: 0.600000
+NDCG@10: 0.692531
+NDCG@20: 0.725631
+Top10Overlap: 7.000000
+Top20Overlap: 12.000000
+
+Elite Diagnostics
+Top1_MAE: 129.969757
+Top5_MAE: 62.425499
+Top10_MAE: 41.045704
+Top1_MSE: 16892.138672
+Top5_MSE: 5057.937500
+Top10_MSE: 2825.848145
+P95_MAE: 49.045399
+P95_MSE: 3511.322510

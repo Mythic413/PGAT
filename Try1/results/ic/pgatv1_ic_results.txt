@@ -1,0 +1,34 @@
+============================================================
+PGAT-v1 IC FINAL RESULTS
+============================================================
+
+Best Epoch: 668
+Best Validation MAE: 9.5544
+
+Architecture
+----------------------------------------
+Probability Gate    : YES
+Temperature Scaling : NO
+Double Probability  : YES
+Residual            : YES
+Multitask Learning  : NO
+LLRD                : YES
+Cosine Scheduler    : YES
+
+IC Test Metrics
+----------------------------------------
+MAE            : 9.6781
+RMSE           : 12.7592
+R2             : 0.8128
+Spearman       : 0.8906
+NDCG@10        : 0.9343
+Precision@10   : 0.8000
+
+PGAT-v2 Comparison
+----------------------------------------
+MAE            V2=9.6599 | V1=9.6781 | del=-0.0182
+RMSE           V2=12.8027 | V1=12.7592 | del=0.0435
+R2             V2=0.8115 | V1=0.8128 | del=0.0013
+Spearman       V2=0.8885 | V1=0.8906 | del=0.0021
+NDCG@10        V2=0.9322 | V1=0.9343 | del=0.0021
+Precision@10   V2=0.7000 | V1=0.8000 | del=0.1000

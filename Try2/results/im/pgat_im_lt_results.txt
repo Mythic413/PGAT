@@ -1,0 +1,31 @@
+============================================================
+PGAT-IM Results
+============================================================
+
+Best Epoch: 97
+Best Validation Score: 10.586811
+
+Regression Metrics
+MAE: 8.764488
+RMSE: 16.008547
+R2: 0.448714
+Spearman: 0.657772
+KendallTau: 0.480739
+Precision@10: 0.700000
+Precision@20: 0.600000
+Recall@10: 0.700000
+Recall@20: 0.600000
+NDCG@10: 0.716145
+NDCG@20: 0.715922
+Top10Overlap: 7.000000
+Top20Overlap: 12.000000
+
+Elite Diagnostics
+Top1_MAE: 126.506378
+Top5_MAE: 61.593506
+Top10_MAE: 40.431725
+Top1_MSE: 16003.863281
+Top5_MSE: 4872.663086
+Top10_MSE: 2761.406738
+P95_MAE: 48.902962
+P95_MSE: 3438.861816

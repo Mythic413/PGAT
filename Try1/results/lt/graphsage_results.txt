@@ -1,0 +1,13 @@
+GRAPHSAGE LT EXPERIMENT RESULTS
+==================================================
+Best Epoch: 1000
+Best Validation MAE: 6.559759
+
+Test Metrics
+--------------------
+MAE: 5.899995
+RMSE: 9.478703
+R2: 0.151088
+Spearman: 0.553276
+NDCG@10: 0.554863
+Precision@10: 0.400000

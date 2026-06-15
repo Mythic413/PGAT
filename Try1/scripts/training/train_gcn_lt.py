@@ -1,0 +1,741 @@
+# ============================================================
+# train_gcn_ic.py
+# Chunk 1: Imports, Configuration, Metrics, Dataset Loading
+# ============================================================
+
+import os
+import copy
+import random
+import warnings
+import numpy as np
+import pandas as pd
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+
+from scipy.stats import spearmanr
+from sklearn.metrics import (
+    mean_absolute_error,
+    mean_squared_error,
+    r2_score,
+)
+
+from sklearn.metrics import ndcg_score
+
+from torch_geometric.nn import GCNConv
+
+warnings.filterwarnings("ignore")
+
+
+# ============================================================
+# Reproducibility
+# ============================================================
+
+SEED = 42
+
+random.seed(SEED)
+np.random.seed(SEED)
+torch.manual_seed(SEED)
+
+if torch.cuda.is_available():
+    torch.cuda.manual_seed(SEED)
+    torch.cuda.manual_seed_all(SEED)
+
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+
+# ============================================================
+# Configuration
+# ============================================================
+
+DATA_PATH = "data/higgs_pyg.pt"
+CHECKPOINT_PATH = "checkpoints/best_gcn_lt.pt"
+
+RESULTS_PATH = "results/lt/gcn_results.txt"
+PREDICTIONS_PATH = "results/lt/gcn_predictions.csv"
+
+os.makedirs("checkpoints", exist_ok=True)
+os.makedirs("results/lt", exist_ok=True)
+
+DEVICE = torch.device(
+    "cuda" if torch.cuda.is_available() else "cpu"
+)
+
+HIDDEN_DIM = 32
+DROPOUT = 0.1
+
+LR = 1e-3
+WEIGHT_DECAY = 1e-4
+
+EPOCHS = 1000
+PATIENCE = 100
+
+HUBER_DELTA = 0.1
+
+
+# ============================================================
+# Ranking Metrics
+# ============================================================
+
+def precision_at_k(y_true, y_pred, k=10):
+    """
+    Precision@K based on overlap of top-K nodes.
+    """
+
+    k = min(k, len(y_true))
+
+    true_topk = np.argsort(y_true)[-k:]
+    pred_topk = np.argsort(y_pred)[-k:]
+
+    overlap = len(set(true_topk).intersection(set(pred_topk)))
+
+    return overlap / k
+
+
+def ndcg_at_k(y_true, y_pred, k=10):
+    """
+    NDCG@K using sklearn.
+    """
+
+    k = min(k, len(y_true))
+
+    return ndcg_score(
+        y_true.reshape(1, -1),
+        y_pred.reshape(1, -1),
+        k=k
+    )
+
+
+# ============================================================
+# Evaluation Function
+# ============================================================
+
+def compute_metrics(y_true, y_pred):
+    """
+    Compute all regression and ranking metrics.
+    """
+
+    mae = mean_absolute_error(y_true, y_pred)
+
+    rmse = np.sqrt(
+        mean_squared_error(y_true, y_pred)
+    )
+
+    r2 = r2_score(y_true, y_pred)
+
+    spearman_corr, _ = spearmanr(
+        y_true,
+        y_pred
+    )
+
+    ndcg10 = ndcg_at_k(
+        y_true,
+        y_pred,
+        k=10
+    )
+
+    precision10 = precision_at_k(
+        y_true,
+        y_pred,
+        k=10
+    )
+
+    return {
+        "MAE": mae,
+        "RMSE": rmse,
+        "R2": r2,
+        "Spearman": spearman_corr,
+        "NDCG@10": ndcg10,
+        "Precision@10": precision10,
+    }
+
+
+# ============================================================
+# Dataset Loading
+# ============================================================
+
+print("=" * 60)
+print("Loading PyG Dataset...")
+print("=" * 60)
+
+data = torch.load(
+    DATA_PATH,
+    weights_only=False
+)
+
+print(data)
+
+print("\nDataset Summary")
+print("-" * 40)
+
+print("Nodes:", data.num_nodes)
+print("Edges:", data.edge_index.shape[1])
+print("Features:", data.x.shape[1])
+
+print("Train:", data.train_mask.sum().item())
+print("Validation:", data.val_mask.sum().item())
+print("Test:", data.test_mask.sum().item())
+
+print("\nLT Label Statistics")
+print("-" * 40)
+
+num_nan = torch.isnan(data.y_lt).sum().item()
+
+print("NaN Labels:", num_nan)
+print("Labeled Nodes:", data.num_nodes - num_nan)
+
+# Move everything to GPU/CPU
+data = data.to(DEVICE)
+
+print("\nUsing Device:", DEVICE)
+print("=" * 60)
+
+# ============================================================
+# Chunk 2: GCN Model, Loss, Optimizer Helpers
+# ============================================================
+
+# ------------------------------------------------------------
+# GCN Model Definition
+# ------------------------------------------------------------
+
+class GCN(nn.Module):
+    """
+    2-layer GCN for LT Influence Estimation
+    Architecture:
+        Input -> GCN -> ReLU -> Dropout -> GCN -> Output
+    """
+
+    def __init__(self, in_channels, hidden_channels, dropout=0.1):
+        super().__init__()
+
+        self.conv1 = GCNConv(
+            in_channels,
+            hidden_channels
+        )
+
+        self.conv2 = GCNConv(
+            hidden_channels,
+            1
+        )
+
+        self.dropout = dropout
+
+    def forward(self, x, edge_index):
+        """
+        Returns:
+            shape = [num_nodes]
+        """
+
+        # First GCN layer
+        x = self.conv1(x, edge_index)
+
+        x = F.relu(x)
+
+        x = F.dropout(
+            x,
+            p=self.dropout,
+            training=self.training
+        )
+
+        # Output layer
+        x = self.conv2(x, edge_index)
+
+        return x.squeeze(-1)
+
+
+# ============================================================
+# Model Initialization
+# ============================================================
+
+model = GCN(
+    in_channels=data.x.shape[1],
+    hidden_channels=HIDDEN_DIM,
+    dropout=DROPOUT
+).to(DEVICE)
+
+print("\nModel Architecture")
+print("-" * 40)
+print(model)
+
+total_params = sum(
+    p.numel()
+    for p in model.parameters()
+)
+
+trainable_params = sum(
+    p.numel()
+    for p in model.parameters()
+    if p.requires_grad
+)
+
+print(f"Total Parameters     : {total_params:,}")
+print(f"Trainable Parameters : {trainable_params:,}")
+
+
+# ============================================================
+# Loss Function
+# ============================================================
+
+loss_fn = nn.HuberLoss(
+    delta=HUBER_DELTA
+)
+
+
+# ============================================================
+# Optimizer
+# ============================================================
+
+optimizer = torch.optim.AdamW(
+    model.parameters(),
+    lr=LR,
+    weight_decay=WEIGHT_DECAY
+)
+
+
+# ============================================================
+# Helper Function: Masked Loss
+# ============================================================
+
+def masked_huber_loss(
+    predictions,
+    targets,
+    mask
+):
+    """
+    Compute Huber loss only on the specified mask.
+
+    Handles NaN labels safely.
+    """
+
+    valid_mask = (
+        mask &
+        (~torch.isnan(targets))
+    )
+
+    pred = predictions[valid_mask]
+    true = targets[valid_mask]
+
+    return loss_fn(pred, true)
+
+
+# ============================================================
+# Helper Function: Get Predictions on Mask
+# ============================================================
+
+@torch.no_grad()
+def get_mask_predictions(
+    predictions,
+    targets,
+    mask
+):
+    """
+    Extract numpy arrays for evaluation.
+    """
+
+    valid_mask = (
+        mask &
+        (~torch.isnan(targets))
+    )
+
+    y_true = (
+        targets[valid_mask]
+        .detach()
+        .cpu()
+        .numpy()
+    )
+
+    y_pred = (
+        predictions[valid_mask]
+        .detach()
+        .cpu()
+        .numpy()
+    )
+
+    return y_true, y_pred
+
+
+# ============================================================
+# Early Stopping Variables
+# ============================================================
+
+best_val_mae = float("inf")
+
+best_epoch = -1
+
+best_state_dict = None
+
+patience_counter = 0
+
+history = {
+    "train_loss": [],
+    "val_mae": []
+}
+
+
+print("\nTraining Configuration")
+print("-" * 40)
+
+print(f"Loss            : HuberLoss(delta={HUBER_DELTA})")
+print("Optimizer       : AdamW")
+print(f"Learning Rate   : {LR}")
+print(f"Weight Decay    : {WEIGHT_DECAY}")
+print(f"Epochs          : {EPOCHS}")
+print(f"Patience        : {PATIENCE}")
+print(f"Dropout         : {DROPOUT}")
+
+print("=" * 60)
+print("Setup Complete")
+print("=" * 60)
+
+# ============================================================
+# Chunk 3: Training Loop with Early Stopping
+# ============================================================
+
+print("\n" + "=" * 60)
+print("Starting GCN Training on LT Labels...")
+print("=" * 60)
+
+
+# ============================================================
+# Training Function
+# ============================================================
+
+def train_one_epoch():
+    """
+    Perform one full-batch training epoch.
+    Returns:
+        train_loss (float)
+    """
+
+    model.train()
+
+    optimizer.zero_grad()
+
+    # Forward pass on all 5000 nodes
+    predictions = model(
+        data.x,
+        data.edge_index
+    )
+
+    # Loss only on labeled training nodes
+    loss = masked_huber_loss(
+        predictions,
+        data.y_lt,
+        data.train_mask
+    )
+
+    loss.backward()
+
+    optimizer.step()
+
+    return loss.item()
+
+
+# ============================================================
+# Validation Function
+# ============================================================
+
+@torch.no_grad()
+def validate():
+    """
+    Compute validation MAE.
+    """
+
+    model.eval()
+
+    predictions = model(
+        data.x,
+        data.edge_index
+    )
+
+    y_true, y_pred = get_mask_predictions(
+        predictions,
+        data.y_lt,
+        data.val_mask
+    )
+
+    val_mae = mean_absolute_error(
+        y_true,
+        y_pred
+    )
+
+    return val_mae
+
+
+# ============================================================
+# Main Training Loop
+# ============================================================
+
+for epoch in range(1, EPOCHS + 1):
+
+    # -----------------------
+    # Train
+    # -----------------------
+    train_loss = train_one_epoch()
+
+    # -----------------------
+    # Validate
+    # -----------------------
+    val_mae = validate()
+
+    history["train_loss"].append(train_loss)
+    history["val_mae"].append(val_mae)
+
+    # -----------------------
+    # Save Best Model
+    # -----------------------
+    if val_mae < best_val_mae:
+
+        best_val_mae = val_mae
+        best_epoch = epoch
+
+        best_state_dict = copy.deepcopy(
+            model.state_dict()
+        )
+
+        torch.save(
+            best_state_dict,
+            CHECKPOINT_PATH
+        )
+
+        patience_counter = 0
+
+    else:
+        patience_counter += 1
+
+    # -----------------------
+    # Logging
+    # -----------------------
+    if (
+        epoch == 1
+        or epoch % 10 == 0
+        or epoch == EPOCHS
+    ):
+        print(
+            f"Epoch {epoch:03d}/{EPOCHS} | "
+            f"Train Loss: {train_loss:.4f} | "
+            f"Val MAE: {val_mae:.4f} | "
+            f"Best Val MAE: {best_val_mae:.4f}"
+        )
+
+    # -----------------------
+    # Early Stopping
+    # -----------------------
+    if patience_counter >= PATIENCE:
+
+        print("\nEarly stopping triggered.")
+        print(
+            f"No improvement for "
+            f"{PATIENCE} consecutive epochs."
+        )
+
+        break
+
+
+print("\n" + "=" * 60)
+print("Training Complete")
+print("=" * 60)
+
+print(f"Best Epoch        : {best_epoch}")
+print(f"Best Validation MAE: {best_val_mae:.4f}")
+
+print(
+    f"\nBest model saved to:"
+    f" {CHECKPOINT_PATH}"
+)
+
+# ============================================================
+# Load Best Model Before Testing
+# ============================================================
+
+print("\nLoading best checkpoint...")
+
+model.load_state_dict(
+    torch.load(
+        CHECKPOINT_PATH,
+        map_location=DEVICE,
+        weights_only=True
+    )
+)
+
+model.eval()
+
+print("Best checkpoint restored.")
+print("=" * 60)
+
+# ============================================================
+# Chunk 4: Final Evaluation and Thesis Summary
+# ============================================================
+
+print("\n" + "=" * 60)
+print("Final Evaluation on Test Set")
+print("=" * 60)
+
+
+# ============================================================
+# Test Evaluation
+# ============================================================
+
+@torch.no_grad()
+def evaluate_test():
+    """
+    Evaluate the best checkpoint on the test nodes.
+    """
+
+    model.eval()
+
+    predictions = model(
+        data.x,
+        data.edge_index
+    )
+
+    y_true, y_pred = get_mask_predictions(
+        predictions,
+        data.y_lt,
+        data.test_mask
+    )
+
+    metrics = compute_metrics(
+        y_true,
+        y_pred
+    )
+
+    return metrics, y_true, y_pred
+
+
+# Run evaluation
+test_metrics, y_true_test, y_pred_test = evaluate_test()
+# ============================================================
+# Save Prediction CSV
+# ============================================================
+
+valid_mask = (
+    data.test_mask &
+    (~torch.isnan(data.y_lt))
+)
+
+node_ids = np.where(
+    valid_mask.detach().cpu().numpy()
+)[0]
+
+prediction_df = pd.DataFrame({
+    "node_id": node_ids,
+    "true_lt": y_true_test,
+    "pred_lt": y_pred_test
+})
+
+prediction_df.to_csv(
+    PREDICTIONS_PATH,
+    index=False
+)
+
+print(
+    f"\nPredictions saved to: "
+    f"{PREDICTIONS_PATH}"
+)
+
+# ============================================================
+# Print Test Metrics
+# ============================================================
+
+print("\nTest Metrics")
+print("-" * 40)
+
+print(f"Test MAE          : {test_metrics['MAE']:.4f}")
+print(f"Test RMSE         : {test_metrics['RMSE']:.4f}")
+print(f"Test R²           : {test_metrics['R2']:.4f}")
+print(f"Spearman          : {test_metrics['Spearman']:.4f}")
+print(f"NDCG@10           : {test_metrics['NDCG@10']:.4f}")
+print(f"Precision@10      : {test_metrics['Precision@10']:.4f}")
+
+
+# ============================================================
+# Top-10 Influence Ranking Analysis
+# ============================================================
+
+print("\nTop-10 Ranking Analysis")
+print("-" * 40)
+
+true_top10_idx = np.argsort(y_true_test)[-10:][::-1]
+pred_top10_idx = np.argsort(y_pred_test)[-10:][::-1]
+
+print("\nGround Truth Top-10 LT Influence:")
+for rank, idx in enumerate(true_top10_idx, start=1):
+    print(
+        f"{rank:2d}. "
+        f"Influence = {y_true_test[idx]:8.4f}"
+    )
+
+print("\nPredicted Top-10 LT Influence:")
+for rank, idx in enumerate(pred_top10_idx, start=1):
+    print(
+        f"{rank:2d}. "
+        f"Influence = {y_pred_test[idx]:8.4f}"
+    )
+
+
+# ============================================================
+# Experiment Summary
+# ============================================================
+
+print("\n" + "=" * 60)
+print("GCN LT EXPERIMENT SUMMARY")
+print("=" * 60)
+
+print(f"Model                 : GCN")
+print(f"Task                  : LT Influence Estimation")
+print(f"Target                : y_lt ")
+print(f"Hidden Dimension      : {HIDDEN_DIM}")
+print(f"Dropout               : {DROPOUT}")
+print(f"Optimizer             : AdamW")
+print(f"Learning Rate         : {LR}")
+print(f"Weight Decay          : {WEIGHT_DECAY}")
+print(f"Loss                  : HuberLoss(delta={HUBER_DELTA})")
+print(f"Max Epochs            : {EPOCHS}")
+print(f"Early Stopping        : {PATIENCE}")
+print(f"Best Epoch            : {best_epoch}")
+
+print("\nValidation Performance")
+print("-" * 40)
+print(f"Best Validation MAE   : {best_val_mae:.4f}")
+
+print("\nTest Performance")
+print("-" * 40)
+print(f"MAE                   : {test_metrics['MAE']:.4f}")
+print(f"RMSE                  : {test_metrics['RMSE']:.4f}")
+print(f"R²                    : {test_metrics['R2']:.4f}")
+print(f"Spearman              : {test_metrics['Spearman']:.4f}")
+print(f"NDCG@10               : {test_metrics['NDCG@10']:.4f}")
+print(f"Precision@10          : {test_metrics['Precision@10']:.4f}")
+
+print("=" * 60)
+print("Experiment Finished Successfully")
+print("=" * 60)
+
+
+# ============================================================
+# Save Results to Text File
+# ============================================================
+
+
+
+with open(RESULTS_PATH, "w") as f:
+    f.write("GCN LT EXPERIMENT RESULTS\n")
+    f.write("=" * 50 + "\n")
+
+    f.write(f"Best Epoch: {best_epoch}\n")
+    f.write(f"Best Validation MAE: {best_val_mae:.6f}\n\n")
+
+    f.write("Test Metrics\n")
+    f.write("-" * 20 + "\n")
+
+    for metric, value in test_metrics.items():
+        f.write(f"{metric}: {value:.6f}\n")
+
+print(f"\nResults saved to: {RESULTS_PATH}")
+
+
+# ============================================================
+# End of Script
+# ============================================================

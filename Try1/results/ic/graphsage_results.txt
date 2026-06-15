@@ -1,0 +1,13 @@
+GRAPHSAGE IC EXPERIMENT RESULTS
+==================================================
+Best Epoch: 1000
+Best Validation MAE: 21.044176
+
+Test Metrics
+--------------------
+MAE: 19.463604
+RMSE: 26.597049
+R2: 0.186623
+Spearman: 0.590983
+NDCG@10: 0.648676
+Precision@10: 0.300000

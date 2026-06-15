@@ -1,0 +1,13 @@
+GAT IC EXPERIMENT RESULTS
+==================================================
+Best Epoch: 1000
+Best Validation MAE: 21.451452
+
+Test Metrics
+--------------------
+MAE: 20.869232
+RMSE: 27.877210
+R2: 0.106440
+Spearman: 0.556013
+NDCG@10: 0.579796
+Precision@10: 0.200000

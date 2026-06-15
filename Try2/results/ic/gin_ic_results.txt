@@ -1,0 +1,47 @@
+
+============================================================
+GIN IC EXPERIMENT SUMMARY
+============================================================
+Model               : GIN
+Task                : IC Influence Estimation
+Target              : y_ic
+Hidden Dimension    : 32
+Dropout             : 0.1
+Optimizer           : AdamW
+Scheduler           : ReduceLROnPlateau
+Learning Rate       : 0.001
+Weight Decay        : 0.0001
+Gradient Clip       : 1.0
+Loss                : MSELoss
+Max Epochs          : 500
+Early Stopping      : 100
+Best Epoch          : 498
+Best Validation MAE : 6.7702
+
+Test Performance
+----------------------------------------
+MAE                 : 7.1003
+RMSE                : 11.4153
+R2                  : 0.4009
+Spearman            : 0.4746
+KendallTau          : 0.3291
+Precision@10        : 0.6000
+Precision@20        : 0.4500
+Recall@10           : 0.6000
+Recall@20           : 0.4500
+NDCG@10             : 0.7742
+NDCG@20             : 0.7408
+Top10Overlap        : 6.0000
+Top20Overlap        : 9.0000
+
+Elite Diagnostics
+----------------------------------------
+Top1_MAE            : 58.6293
+Top5_MAE            : 42.4026
+Top10_MAE           : 29.1024
+Top1_MSE            : 3437.3901
+Top5_MSE            : 2063.3459
+Top10_MSE           : 1208.9596
+P95_MAE             : 32.3400
+P95_MSE             : 1400.5925
+============================================================

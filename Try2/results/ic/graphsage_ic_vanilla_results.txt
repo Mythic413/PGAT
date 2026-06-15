@@ -1,0 +1,32 @@
+VANILLA GRAPHSAGE IC RESULTS
+============================================================
+
+Best Epoch: 500
+Best Validation MAE: 4.177852
+
+Regression Metrics
+MAE: 5.387420
+RMSE: 10.636760
+R2: 0.479852
+Spearman: 0.777553
+KendallTau: 0.584369
+
+Ranking Metrics
+Precision@10: 0.600000
+Precision@20: 0.700000
+Recall@10: 0.600000
+Recall@20: 0.700000
+NDCG@10: 0.793159
+NDCG@20: 0.830391
+Top10Overlap: 6.000000
+Top20Overlap: 14.000000
+
+Elite Diagnostics
+Top1_MAE: 84.974396
+Top5_MAE: 43.680428
+Top10_MAE: 29.729282
+Top1_MSE: 7220.647949
+Top5_MSE: 2506.616699
+Top10_MSE: 1408.892334
+P95_MAE: 32.457703
+P95_MSE: 1651.276489

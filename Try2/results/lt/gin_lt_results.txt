@@ -1,0 +1,47 @@
+
+============================================================
+GIN LT EXPERIMENT SUMMARY
+============================================================
+Model               : GIN
+Task                : LT Influence Estimation
+Target              : y_lt
+Hidden Dimension    : 32
+Dropout             : 0.1
+Optimizer           : AdamW
+Scheduler           : ReduceLROnPlateau
+Learning Rate       : 0.001
+Weight Decay        : 0.0001
+Gradient Clip       : 1.0
+Loss                : MSELoss
+Max Epochs          : 500
+Early Stopping      : 100
+Best Epoch          : 393
+Best Validation MAE : 10.3982
+
+Test Performance
+----------------------------------------
+MAE                 : 9.7537
+RMSE                : 15.7019
+R2                  : 0.4696
+Spearman            : 0.4572
+KendallTau          : 0.3207
+Precision@10        : 0.6000
+Precision@20        : 0.5000
+Recall@10           : 0.6000
+Recall@20           : 0.5000
+NDCG@10             : 0.8553
+NDCG@20             : 0.8089
+Top10Overlap        : 6.0000
+Top20Overlap        : 10.0000
+
+Elite Diagnostics
+----------------------------------------
+Top1_MAE            : 86.2934
+Top5_MAE            : 53.1905
+Top10_MAE           : 42.3124
+Top1_MSE            : 7446.5503
+Top5_MSE            : 3328.4746
+Top10_MSE           : 2233.6733
+P95_MAE             : 46.9308
+P95_MSE             : 2639.2368
+============================================================

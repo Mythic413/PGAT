@@ -1,0 +1,13 @@
+GIN LT EXPERIMENT RESULTS
+==================================================
+Best Epoch: 999
+Best Validation MAE: 6.123455
+
+Test Metrics
+--------------------
+MAE: 4.888311
+RMSE: 8.505208
+R2: 0.316506
+Spearman: 0.722711
+NDCG@10: 0.588441
+Precision@10: 0.200000

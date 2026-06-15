@@ -1,0 +1,13 @@
+GCN LT EXPERIMENT RESULTS
+==================================================
+Best Epoch: 1000
+Best Validation MAE: 7.060779
+
+Test Metrics
+--------------------
+MAE: 6.842562
+RMSE: 11.170663
+R2: -0.179024
+Spearman: 0.499004
+NDCG@10: 0.336899
+Precision@10: 0.100000

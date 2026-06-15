@@ -1,0 +1,13 @@
+GAT LT EXPERIMENT RESULTS
+==================================================
+Best Epoch: 707
+Best Validation MAE: 6.875693
+
+Test Metrics
+--------------------
+MAE: 6.244497
+RMSE: 10.358725
+R2: -0.013859
+Spearman: 0.455578
+NDCG@10: 0.227910
+Precision@10: 0.100000

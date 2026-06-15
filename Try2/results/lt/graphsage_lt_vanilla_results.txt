@@ -1,0 +1,32 @@
+VANILLA GRAPHSAGE LT RESULTS
+============================================================
+
+Best Epoch: 500
+Best Validation MAE: 6.707730
+
+Regression Metrics
+MAE: 8.337682
+RMSE: 16.702076
+R2: 0.399913
+Spearman: 0.758523
+KendallTau: 0.560223
+
+Ranking Metrics
+Precision@10: 0.700000
+Precision@20: 0.700000
+Recall@10: 0.700000
+Recall@20: 0.700000
+NDCG@10: 0.756873
+NDCG@20: 0.782895
+Top10Overlap: 7.000000
+Top20Overlap: 14.000000
+
+Elite Diagnostics
+Top1_MAE: 141.302597
+Top5_MAE: 70.318321
+Top10_MAE: 47.856438
+Top1_MSE: 19966.423828
+Top5_MSE: 6235.837891
+Top10_MSE: 3511.757080
+P95_MAE: 56.393631
+P95_MSE: 4341.235352
