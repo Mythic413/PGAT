@@ -144,7 +144,7 @@
 * **How I calculated:**
   * Executed 200 standard Monte Carlo sweeps per node using unmodified edge weights.
   * Activation Formula: `If Uniform(0, 1) < p(u,v)`, activate node v.
-  * Expected Spread Formula: `ic_mean = \frac{1}{M} \sum_{m=1}^{M} |A_m|` (Where M = 200 and A_m is the set of all activated nodes in simulation m).
+  * Expected Spread Formula: `ic_mean = {1/M}*sum_{m=1}^{M} |A_m|` (Where M = 200 and A_m is the set of all activated nodes in simulation m).
 * **Problems solved:**
   * Restored mathematical consistency, enabling an objective.
   * Synchronized the node sampling universe across IC and LT pipelines to ensure fair shared supervision.
@@ -159,8 +159,8 @@
 ### 1.6 STEP 5B: LT_LABELS
 #### **Try 1:**
 * **What I did:** Generated Linear Threshold (LT) target labels across 1,000 degree-stratified nodes using full graph scanning O(V) per propagation loop, explicit edge weight renormalization, and a safety-penalized robust spread metric.
-* **How I calculated:** * Weight Renormalization Formula: `w(u,v) = p(u,v) / \sum_{k \in N^{in}(v)} p(k,v)`
-  * Activation Condition: Activate node v if: `\sum_{u \in A} w(u,v) >= \theta_v` where `\theta_v` is `Uniform(0, 1)`
+* **How I calculated:** * Weight Renormalization Formula: `w(u,v) = p(u,v) / sum_{k \in N^{in}(v)} p(k,v)`
+  * Activation Condition: Activate node v if: `sum_{u in A} w(u,v) >= theta_v` where `theta_v` is `Uniform(0, 1)`
   * Robust Spread Formula: `lt_robust = lt_mean - 0.1 * lt_std`
 * **Problems I got & numerical results:**
   * Algorithmic Bottleneck: Repeatedly scanned all 5,000 nodes at every step.
@@ -176,8 +176,8 @@
 * **How I calculated:**
   * Weight Rule: Reused unmodified Step 5 weights directly: `w(u,v) = p(u,v) = 1 / max(in_degree(v), 1)`
   * Frontier Accumulator Optimization: Incremented cumulative threshold weights strictly for active node successors: `influence[v] = influence[v] + w(u,v)`
-  * Activation Condition: Activated node v immediately when: `influence[v] >= \theta_v` where `\theta_v` belongs to `Uniform(0, 1)`
-  * Expected Spread Formula: `lt_mean = \frac{1}{M} \sum_{m=1}^{M} |A_m|` where M = 200 Monte Carlo runs
+  * Activation Condition: Activated node v immediately when: `influence[v] >= theta_v` where `theta_v` belongs to `Uniform(0, 1)`
+  * Expected Spread Formula: `lt_mean = {1/M}*sum_{m=1}^{M} |A_m|` where M = 200 Monte Carlo runs
 * **Problems solved & numerical results:**
   * Eliminated O(V) tracking complexity, removed mathematical redundancy, and established identical shared node supervision with IC.
   * Graph: 5,000 nodes | 186,524 edges | 1,000 unified labels
@@ -206,7 +206,7 @@
 #### **Try 2:**
 * **What I did:** Alignment verification, edge tracking, and explicit data safety blocks.
 * **Formulae used:**
-  * Standardization Scaling: `z = (x - \mu) / \sigma`
+  * Standardization Scaling: `z = (x - mu) / sigma`
 * **How I did:**
   * Cleaned feature tracking to parse exactly 9 stable metrics (4 structural, 5 behavioral).
   * Built `edge_index` and `edge_attr` synchronously inside a unified processing loop.
