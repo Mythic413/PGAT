@@ -30,9 +30,7 @@ features = [
     "clustering"
 ]
 
-print("\n==========================")
 print("IC SPEARMAN CORRELATIONS")
-print("==========================")
 
 ic_results = []
 
@@ -50,9 +48,7 @@ for feat in features:
         f"rho = {rho:.4f}"
     )
 
-print("\n==========================")
 print("LT SPEARMAN CORRELATIONS")
-print("==========================")
 
 lt_results = []
 
@@ -71,9 +67,7 @@ for feat in features:
     )
 
 # Sort results
-print("\n==========================")
 print("IC FEATURE RANKING")
-print("==========================")
 
 for feat, rho in sorted(
     ic_results,
@@ -85,9 +79,7 @@ for feat, rho in sorted(
         f"{rho:.4f}"
     )
 
-print("\n==========================")
 print("LT FEATURE RANKING")
-print("==========================")
 
 for feat, rho in sorted(
     lt_results,

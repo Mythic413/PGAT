@@ -27,9 +27,7 @@ print("\nLoading edge probabilities...")
 
 edge_df = pd.read_csv("data/edge_probabilities.csv")
 
-# --------------------------------------------------
 # Build LT weights
-# --------------------------------------------------
 
 print("Building LT weights...")
 
@@ -55,10 +53,7 @@ for _, row in edge_df.iterrows():
 
 print("LT weights built.")
 
-# --------------------------------------------------
 # Select same 1000 nodes
-# --------------------------------------------------
-
 degree = dict(G.degree())
 
 deg_df = pd.DataFrame({
@@ -86,10 +81,7 @@ for q in range(4):
 
 print(f"Labeled nodes: {len(selected)}")
 
-# --------------------------------------------------
 # LT Simulation
-# --------------------------------------------------
-
 def run_lt(seed_node):
 
     thresholds = {
@@ -131,9 +123,7 @@ def run_lt(seed_node):
 
     return len(active)
 
-# --------------------------------------------------
 # Generate LT labels
-# --------------------------------------------------
 
 print("\nGenerating LT labels...")
 

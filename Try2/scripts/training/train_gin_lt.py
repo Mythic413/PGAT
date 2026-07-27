@@ -24,9 +24,7 @@ from torch_geometric.nn import GINConv
 
 warnings.filterwarnings("ignore")
 
-# ============================================================
 # Configuration
-# ============================================================
 
 SEED = 42
 
@@ -55,9 +53,7 @@ DEVICE = torch.device(
     "cuda" if torch.cuda.is_available() else "cpu"
 )
 
-# ============================================================
 # Reproducibility
-# ============================================================
 
 def set_seed(seed=42):
     random.seed(seed)
@@ -74,12 +70,9 @@ def set_seed(seed=42):
 
     torch.backends.cudnn.benchmark = False
 
-
 set_seed(SEED)
 
-# ============================================================
 # Create directories
-# ============================================================
 
 os.makedirs(
     os.path.dirname(CHECKPOINT_PATH),
@@ -96,9 +89,7 @@ os.makedirs(
     exist_ok=True,
 )
 
-# ============================================================
 # Benchmark Header
-# ============================================================
 
 print("=" * 60)
 print("GIN-LT Publication Benchmark")
@@ -128,9 +119,7 @@ print(f"Patience          : {PATIENCE}")
 
 print("=" * 60)
 
-# ============================================================
 # Load Dataset
-# ============================================================
 
 print("\n" + "=" * 60)
 print("Loading PyG Dataset...")
@@ -163,9 +152,7 @@ print(
     f"Test Nodes   : {int(data.test_mask.sum())}"
 )
 
-# ============================================================
 # Label Statistics
-# ============================================================
 
 y = getattr(data, TARGET)
 
@@ -203,9 +190,7 @@ print(f"\nUsing Device: {DEVICE}")
 
 print("=" * 60)
 
-# ============================================================
 # Metric Utilities
-# ============================================================
 
 def precision_at_k(
     y_true,
@@ -220,7 +205,6 @@ def precision_at_k(
         set(true_idx) & set(pred_idx)
     ) / k
 
-
 def recall_at_k(
     y_true,
     y_pred,
@@ -234,7 +218,6 @@ def recall_at_k(
         set(true_idx) & set(pred_idx)
     ) / k
 
-
 def topk_overlap(
     y_true,
     y_pred,
@@ -247,7 +230,6 @@ def topk_overlap(
     return len(
         set(true_idx) & set(pred_idx)
     )
-
 
 def elite_metrics(
     y_true,
@@ -289,34 +271,10 @@ def elite_metrics(
 
     return metrics
 
-# ============================================================
 # GIN Model
-# ============================================================
 
 class GIN(nn.Module):
-    """
-    Vanilla GIN for LT Influence Estimation
-
-    Architecture
-    ------------
-    Input Features
-    ↓
-    GINConv(
-        Linear → ReLU → Linear
-    )
-    ↓
-    LayerNorm(32)
-    ↓
-    ReLU
-    ↓
-    Dropout
-    ↓
-    GINConv(
-        Linear → ReLU → Linear
-    )
-    ↓
-    Node Influence Prediction
-    """
+    """GIN model."""
 
     def __init__(
         self,
@@ -328,9 +286,7 @@ class GIN(nn.Module):
 
         self.dropout = dropout
 
-        # ----------------------------------------------------
         # First GIN layer
-        # ----------------------------------------------------
         mlp1 = nn.Sequential(
             nn.Linear(
                 in_channels,
@@ -353,9 +309,7 @@ class GIN(nn.Module):
             hidden_channels,
         )
 
-        # ----------------------------------------------------
         # Second GIN layer
-        # ----------------------------------------------------
         mlp2 = nn.Sequential(
             nn.Linear(
                 hidden_channels,
@@ -389,9 +343,7 @@ class GIN(nn.Module):
         edge_index,
     ):
 
-        # --------------------------------------------
         # GIN Block 1
-        # --------------------------------------------
         x = self.conv1(
             x,
             edge_index,
@@ -407,9 +359,7 @@ class GIN(nn.Module):
             training=self.training,
         )
 
-        # --------------------------------------------
         # GIN Block 2
-        # --------------------------------------------
         x = self.conv2(
             x,
             edge_index,
@@ -417,10 +367,7 @@ class GIN(nn.Module):
 
         return x.squeeze(-1)
 
-
-# ============================================================
 # Model Initialization
-# ============================================================
 
 model = GIN(
     in_channels=data.x.shape[1],
@@ -458,10 +405,7 @@ print("=" * 60)
 print("Dataset + Model Ready")
 print("=" * 60)
 
-
-# ============================================================
 # Optimization Components
-# ============================================================
 
 loss_fn = nn.MSELoss()
 
@@ -527,10 +471,7 @@ print("=" * 60)
 print("Optimization Setup Complete")
 print("=" * 60)
 
-
-# ============================================================
 # Training
-# ============================================================
 
 print("\n" + "=" * 60)
 print("Starting GIN Training on LT Labels...")
@@ -547,9 +488,7 @@ history = {
 
 for epoch in range(1, EPOCHS + 1):
 
-    # --------------------------------------------------------
     # Training
-    # --------------------------------------------------------
     model.train()
 
     optimizer.zero_grad()
@@ -583,9 +522,7 @@ for epoch in range(1, EPOCHS + 1):
 
     train_mse = loss.item()
 
-    # --------------------------------------------------------
     # Validation
-    # --------------------------------------------------------
     model.eval()
 
     with torch.no_grad():
@@ -625,16 +562,12 @@ for epoch in range(1, EPOCHS + 1):
             k=10,
         )
 
-    # --------------------------------------------------------
     # Scheduler
-    # --------------------------------------------------------
     scheduler.step(val_mae)
 
     current_lr = optimizer.param_groups[0]["lr"]
 
-    # --------------------------------------------------------
     # History
-    # --------------------------------------------------------
     history["train_loss"].append(
         train_mse
     )
@@ -643,9 +576,7 @@ for epoch in range(1, EPOCHS + 1):
         val_mae
     )
 
-    # --------------------------------------------------------
     # Checkpoint
-    # --------------------------------------------------------
     if val_mae < best_val_mae:
 
         best_val_mae = val_mae
@@ -668,9 +599,7 @@ for epoch in range(1, EPOCHS + 1):
 
         epochs_without_improvement += 1
 
-    # --------------------------------------------------------
     # Logging
-    # --------------------------------------------------------
     if epoch == 1 or epoch % 10 == 0:
 
         print(
@@ -690,9 +619,7 @@ for epoch in range(1, EPOCHS + 1):
             f"{val_ndcg10:.4f}"
         )
 
-    # --------------------------------------------------------
     # Early Stopping
-    # --------------------------------------------------------
     if epochs_without_improvement >= PATIENCE:
 
         print("\nEarly stopping triggered.")
@@ -703,10 +630,7 @@ for epoch in range(1, EPOCHS + 1):
 
         break
 
-
-# ============================================================
 # Training Complete
-# ============================================================
 
 print("\n" + "=" * 60)
 print("Training Complete")
@@ -731,10 +655,7 @@ print("\nBest checkpoint saved to:")
 
 print(CHECKPOINT_PATH)
 
-
-# ============================================================
 # Restore Best Checkpoint
-# ============================================================
 
 print("\nLoading best checkpoint...")
 
@@ -762,9 +683,7 @@ print("Checkpoint restored.")
 
 print("=" * 60)
 
-# ============================================================
 # Final Evaluation on Test Set
-# ============================================================
 
 print("\n" + "=" * 60)
 print("Final Evaluation on Test Set")
@@ -803,9 +722,7 @@ test_node_ids = (
     .numpy()
 )
 
-# ============================================================
 # Regression Metrics
-# ============================================================
 
 mae = mean_absolute_error(
     y_true_test,
@@ -834,9 +751,7 @@ kendall, _ = kendalltau(
     y_pred_test,
 )
 
-# ============================================================
 # Ranking Metrics
-# ============================================================
 
 precision10 = precision_at_k(
     y_true_test,
@@ -886,18 +801,14 @@ top20_overlap = topk_overlap(
     20,
 )
 
-# ============================================================
 # Elite Diagnostics
-# ============================================================
 
 elite = elite_metrics(
     y_true_test,
     y_pred_test,
 )
 
-# ============================================================
 # Print Metrics
-# ============================================================
 
 print("\nTest Metrics")
 print("-" * 40)
@@ -929,9 +840,7 @@ for metric, value in elite.items():
         f"{metric:<20}: {value:.4f}"
     )
 
-# ============================================================
 # Top-10 Ranking Analysis
-# ============================================================
 
 print("\nTop-10 Ranking Analysis")
 print("-" * 40)
@@ -972,9 +881,7 @@ for rank, idx in enumerate(
         f"{y_pred_test[idx]:8.4f}"
     )
 
-# ============================================================
 # Prediction Export
-# ============================================================
 
 prediction_df = pd.DataFrame({
 
@@ -1006,9 +913,7 @@ print("\nPredictions saved to:")
 
 print(PREDICTIONS_PATH)
 
-# ============================================================
 # Experiment Summary
-# ============================================================
 
 summary = f"""
 ============================================================

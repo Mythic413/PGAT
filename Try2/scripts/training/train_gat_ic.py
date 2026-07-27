@@ -1,7 +1,3 @@
-# ============================================================
-# train_gat_ic.py
-# Chunk 1: Imports, Configuration, Reproducibility, Metrics
-# ============================================================
 import random
 import warnings
 from pathlib import Path
@@ -26,10 +22,7 @@ from torch_geometric.nn import GATConv
 
 warnings.filterwarnings("ignore")
 
-
-# ============================================================
 # Reproducibility
-# ============================================================
 
 SEED = 42
 
@@ -45,10 +38,7 @@ if torch.cuda.is_available():
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-
-# ============================================================
 # Configuration
-# ============================================================
 
 DATA_PATH = Path("Try2/data/higgs_pyg.pt")
 
@@ -74,17 +64,13 @@ RESULTS_PATH.parent.mkdir(
     exist_ok=True
 )
 
-
 DEVICE = torch.device(
     "cuda"
     if torch.cuda.is_available()
     else "cpu"
 )
 
-
-# ============================================================
 # Architecture (Frozen from GCN)
-# ============================================================
 
 HIDDEN_DIM = 32
 DROPOUT = 0.10
@@ -92,10 +78,7 @@ DROPOUT = 0.10
 HEADS = 1
 CONCAT = False
 
-
-# ============================================================
 # Optimization (Frozen from GCN)
-# ============================================================
 
 LR = 1e-3
 WEIGHT_DECAY = 1e-4
@@ -105,29 +88,21 @@ PATIENCE = 100
 
 GRAD_CLIP = 1.0
 
-
-# ============================================================
 # Scheduler (Frozen from GCN)
-# ============================================================
 
 SCHEDULER_FACTOR = 0.5
 SCHEDULER_PATIENCE = 20
 
 MIN_LR = 1e-5
 
-
-# ============================================================
 # Ranking Metrics
-# ============================================================
 
 def precision_at_k(
     y_true,
     y_pred,
     k=10,
 ):
-    """
-    Precision@K based on Top-K overlap.
-    """
+    """Compute Precision@K."""
 
     k = min(k, len(y_true))
 
@@ -144,16 +119,13 @@ def precision_at_k(
     )
 
     return overlap / k
-
 
 def recall_at_k(
     y_true,
     y_pred,
     k=10,
 ):
-    """
-    Recall@K.
-    """
+    """Compute Recall@K."""
 
     k = min(k, len(y_true))
 
@@ -171,15 +143,12 @@ def recall_at_k(
 
     return overlap / k
 
-
 def ndcg_at_k(
     y_true,
     y_pred,
     k=10,
 ):
-    """
-    NDCG@K.
-    """
+    """Compute NDCG@K."""
 
     k = min(k, len(y_true))
 
@@ -192,15 +161,12 @@ def ndcg_at_k(
         k=k,
     )
 
-
 def topk_overlap(
     y_true,
     y_pred,
     k=10,
 ):
-    """
-    Absolute Top-K overlap count.
-    """
+    """Compute Top-K overlap."""
 
     k = min(k, len(y_true))
 
@@ -216,39 +182,13 @@ def topk_overlap(
         )
     )
 
-
-# ============================================================
 # Evaluation Metrics
-# ============================================================
 
 def compute_metrics(
     y_true,
     y_pred,
 ):
-    """
-    Publication-grade metrics.
-
-    Regression:
-        MAE
-        RMSE
-        R²
-
-    Rank Correlation:
-        Spearman
-        Kendall Tau
-
-    Retrieval:
-        Precision@10
-        Precision@20
-        Recall@10
-        Recall@20
-        NDCG@10
-        NDCG@20
-
-    Influence Recovery:
-        Top10Overlap
-        Top20Overlap
-    """
+    """Compute regression and ranking metrics."""
 
     mae = mean_absolute_error(
         y_true,
@@ -339,10 +279,7 @@ def compute_metrics(
         ),
     }
 
-
-# ============================================================
 # Publication Summary
-# ============================================================
 
 print("=" * 60)
 print("GAT-IC Publication Benchmark")
@@ -378,10 +315,6 @@ print("Patience          :", PATIENCE)
 
 print("=" * 60)
 
-# ============================================================
-# Chunk 2: Dataset Loading + Publication-Grade GAT
-# ============================================================
-
 print("\n" + "=" * 60)
 print("Loading PyG Dataset...")
 print("=" * 60)
@@ -415,10 +348,7 @@ print(
     data.test_mask.sum().item()
 )
 
-
-# ============================================================
 # IC Label Diagnostics
-# ============================================================
 
 print("\nIC Label Statistics")
 print("-" * 40)
@@ -453,10 +383,7 @@ print(
     f"{valid_ic.max().item():.4f}"
 )
 
-
-# ============================================================
 # Move Dataset to Device
-# ============================================================
 
 data = data.to(DEVICE)
 
@@ -464,27 +391,10 @@ print("\nUsing Device:", DEVICE)
 
 print("=" * 60)
 
-
-# ============================================================
 # Publication-Grade  GAT
-# ============================================================
 
 class GAT(nn.Module):
-    """
-Input Features
-↓
-GATConv(in_channels, hidden_channels)
-↓
-LayerNorm
-↓
-ELU
-↓
-Dropout
-↓
-GATConv(hidden_channels, 1)
-↓
-Node Influence Prediction
-    """
+    """GAT model."""
 
     def __init__(
         self,
@@ -495,9 +405,7 @@ Node Influence Prediction
     ):
         super().__init__()
 
-        # =====================================================
         # Pure GAT Layers
-        # =====================================================
 
         self.conv1 = GATConv(
             in_channels=in_channels,
@@ -515,22 +423,15 @@ Node Influence Prediction
             dropout=0.0,
         )
 
-
-
-        # =====================================================
         # Stabilization
-        # =====================================================
 
         self.norm1 = nn.LayerNorm(
             hidden_channels
         )
 
-
         self.dropout = dropout
 
-        # =====================================================
         # Initialization
-        # =====================================================
 
         self.reset_parameters()
 
@@ -567,9 +468,7 @@ Node Influence Prediction
 
      return h.squeeze(-1)
 
-# ============================================================
 # Model Initialization
-# ============================================================
 
 model = GAT(
     in_channels=data.x.shape[1],
@@ -578,12 +477,10 @@ model = GAT(
     heads=HEADS,
 ).to(DEVICE)
 
-
 print("\nModel Architecture")
 print("-" * 40)
 
 print(model)
-
 
 total_params = sum(
     p.numel()
@@ -610,13 +507,7 @@ print("=" * 60)
 print("Dataset + Model Ready")
 print("=" * 60)
 
-# ============================================================
-# Chunk 3: Loss, Optimizer, Scheduler, Helpers
-# ============================================================
-
-# ============================================================
 # Loss Function
-# ============================================================
 
 loss_fn = nn.MSELoss()
 
@@ -625,10 +516,7 @@ print("-" * 40)
 
 print("Loss Function : MSELoss")
 
-
-# ============================================================
 # Optimizer (Frozen from Try2 GCN)
-# ============================================================
 
 optimizer = torch.optim.AdamW(
     model.parameters(),
@@ -638,10 +526,7 @@ optimizer = torch.optim.AdamW(
 
 print("Optimizer     : AdamW")
 
-
-# ============================================================
 # Scheduler (Frozen from Try2 GCN)
-# ============================================================
 
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
     optimizer,
@@ -665,32 +550,14 @@ print(
     f"Minimum LR     : {MIN_LR}"
 )
 
-
-# ============================================================
 # Masked MSE Loss
-# ============================================================
 
 def masked_mse_loss(
     predictions,
     targets,
     mask,
 ):
-    """
-    Compute MSE only over valid masked nodes.
-
-    Ignores NaN labels.
-
-    Parameters
-    ----------
-    predictions : Tensor [N]
-    targets : Tensor [N]
-    mask : BoolTensor [N]
-
-    Returns
-    -------
-    Tensor
-        Scalar loss.
-    """
+    """Compute masked MSE Loss."""
 
     valid_mask = (
         mask &
@@ -706,10 +573,7 @@ def masked_mse_loss(
         true,
     )
 
-
-# ============================================================
 # Prediction Extraction
-# ============================================================
 
 @torch.no_grad()
 def get_mask_predictions(
@@ -717,20 +581,7 @@ def get_mask_predictions(
     targets,
     mask,
 ):
-    """
-    Extract numpy arrays for evaluation.
-
-    Parameters
-    ----------
-    predictions : Tensor [N]
-    targets : Tensor [N]
-    mask : BoolTensor [N]
-
-    Returns
-    -------
-    y_true : ndarray
-    y_pred : ndarray
-    """
+    """Get predictions on masked nodes."""
 
     valid_mask = (
         mask &
@@ -753,25 +604,13 @@ def get_mask_predictions(
 
     return y_true, y_pred
 
-
-# ============================================================
 # Checkpoint Utilities
-# ============================================================
 
 def save_checkpoint(
     epoch,
     best_val_mae,
 ):
-    """
-    Save full training state.
-
-    Includes:
-        - epoch
-        - best validation MAE
-        - model state
-        - optimizer state
-        - scheduler state
-    """
+    """Save full training state."""
 
     checkpoint = {
         "epoch":
@@ -795,15 +634,8 @@ def save_checkpoint(
         CHECKPOINT_PATH,
     )
 
-
 def load_checkpoint():
-    """
-    Restore best checkpoint.
-
-    Returns
-    -------
-    checkpoint : dict
-    """
+    """Restore best checkpoint."""
 
     checkpoint = torch.load(
         CHECKPOINT_PATH,
@@ -831,10 +663,7 @@ def load_checkpoint():
 
     return checkpoint
 
-
-# ============================================================
 # Early Stopping State
-# ============================================================
 
 best_val_mae = float("inf")
 
@@ -842,17 +671,13 @@ best_epoch = -1
 
 patience_counter = 0
 
-
 history = {
     "train_loss": [],
     "val_mae": [],
     "learning_rate": [],
 }
 
-
-# ============================================================
 # Training Configuration Summary
-# ============================================================
 
 print("\nTraining Configuration")
 print("-" * 40)
@@ -885,44 +710,27 @@ print("=" * 60)
 print("Optimization Setup Complete")
 print("=" * 60)
 
-# ============================================================
-# Chunk 4: Training Loop with Early Stopping
-# ============================================================
-
 print("\n" + "=" * 60)
 print("Starting GAT Training on IC Labels...")
 print("=" * 60)
 
-
-# ============================================================
 # Training Function
-# ============================================================
 
 def train_one_epoch():
-    """
-    Perform one full-batch training epoch.
-
-    Returns
-    -------
-    train_loss : float
-    """
+    """Train one epoch."""
 
     model.train()
 
     optimizer.zero_grad()
 
-    # --------------------------------------------------------
     # Forward Pass
-    # --------------------------------------------------------
 
     predictions = model(
         data.x,
         data.edge_index,
     )
 
-    # --------------------------------------------------------
     # Loss on Training Nodes Only
-    # --------------------------------------------------------
 
     loss = masked_mse_loss(
         predictions,
@@ -930,15 +738,11 @@ def train_one_epoch():
         data.train_mask,
     )
 
-    # --------------------------------------------------------
     # Backpropagation
-    # --------------------------------------------------------
 
     loss.backward()
 
-    # --------------------------------------------------------
     # Gradient Clipping
-    # --------------------------------------------------------
 
     torch.nn.utils.clip_grad_norm_(
         model.parameters(),
@@ -949,21 +753,11 @@ def train_one_epoch():
 
     return loss.item()
 
-
-# ============================================================
 # Validation Function
-# ============================================================
 
 @torch.no_grad()
 def validate():
-    """
-    Compute validation metrics.
-
-    Returns
-    -------
-    val_mae : float
-    val_metrics : dict
-    """
+    """Compute validation metrics."""
 
     model.eval()
 
@@ -987,28 +781,19 @@ def validate():
 
     return val_mae, val_metrics
 
-
-# ============================================================
 # Main Training Loop
-# ============================================================
 
 for epoch in range(1, EPOCHS + 1):
 
-    # --------------------------------------------------------
     # Train
-    # --------------------------------------------------------
 
     train_loss = train_one_epoch()
 
-    # --------------------------------------------------------
     # Validate
-    # --------------------------------------------------------
 
     val_mae, val_metrics = validate()
 
-    # --------------------------------------------------------
     # Scheduler Step
-    # --------------------------------------------------------
 
     scheduler.step(
         val_mae
@@ -1016,9 +801,7 @@ for epoch in range(1, EPOCHS + 1):
 
     current_lr = optimizer.param_groups[0]["lr"]
 
-    # --------------------------------------------------------
     # History
-    # --------------------------------------------------------
 
     history["train_loss"].append(
         train_loss
@@ -1032,9 +815,7 @@ for epoch in range(1, EPOCHS + 1):
         current_lr
     )
 
-    # --------------------------------------------------------
     # Save Best Model
-    # --------------------------------------------------------
 
     if val_mae < best_val_mae:
 
@@ -1053,9 +834,7 @@ for epoch in range(1, EPOCHS + 1):
 
         patience_counter += 1
 
-    # --------------------------------------------------------
     # Logging
-    # --------------------------------------------------------
 
     if (
         epoch == 1
@@ -1071,9 +850,7 @@ for epoch in range(1, EPOCHS + 1):
             f"LR: {current_lr:.6f}"
         )
 
-        # ----------------------------------------------------
         # Optional Validation Diagnostics
-        # ----------------------------------------------------
 
         print(
             f"    Spearman: "
@@ -1084,9 +861,7 @@ for epoch in range(1, EPOCHS + 1):
             f"{val_metrics['NDCG@10']:.4f}"
         )
 
-    # --------------------------------------------------------
     # Early Stopping
-    # --------------------------------------------------------
 
     if patience_counter >= PATIENCE:
 
@@ -1099,10 +874,7 @@ for epoch in range(1, EPOCHS + 1):
 
         break
 
-
-# ============================================================
 # Training Summary
-# ============================================================
 
 print("\n" + "=" * 60)
 print("Training Complete")
@@ -1128,10 +900,7 @@ print(
     f"{CHECKPOINT_PATH}"
 )
 
-
-# ============================================================
 # Restore Best Checkpoint
-# ============================================================
 
 print("\nLoading best checkpoint...")
 
@@ -1153,36 +922,21 @@ print("Checkpoint restored.")
 
 print("=" * 60)
 
-# ============================================================
-# Chunk 5: Final Evaluation, Elite Diagnostics & Result Saving
-# ============================================================
-
 print("\n" + "=" * 60)
 print("Final Evaluation on Test Set")
 print("=" * 60)
 
-
-# ============================================================
 # Elite Influencer Diagnostics
-# ============================================================
 
 def elite_diagnostics(
     y_true,
     y_pred,
 ):
-    """
-    Elite influencer diagnostics.
-
-    Returns
-    -------
-    dict
-    """
+    """Compute elite diagnostics."""
 
     diagnostics = {}
 
-    # ----------------------------
     # Top-1 MAE
-    # ----------------------------
 
     idx = np.argsort(y_true)[-1:]
 
@@ -1193,9 +947,7 @@ def elite_diagnostics(
         )
     )
 
-    # ----------------------------
     # Top-5 MAE
-    # ----------------------------
 
     idx = np.argsort(y_true)[-5:]
 
@@ -1206,9 +958,7 @@ def elite_diagnostics(
         )
     )
 
-    # ----------------------------
     # Top-10 MAE
-    # ----------------------------
 
     idx = np.argsort(y_true)[-10:]
 
@@ -1219,9 +969,7 @@ def elite_diagnostics(
         )
     )
 
-    # ----------------------------
     # Top-1 MSE
-    # ----------------------------
 
     idx = np.argsort(y_true)[-1:]
 
@@ -1232,9 +980,7 @@ def elite_diagnostics(
         ) ** 2
     )
 
-    # ----------------------------
     # Top-5 MSE
-    # ----------------------------
 
     idx = np.argsort(y_true)[-5:]
 
@@ -1245,9 +991,7 @@ def elite_diagnostics(
         ) ** 2
     )
 
-    # ----------------------------
     # Top-10 MSE
-    # ----------------------------
 
     idx = np.argsort(y_true)[-10:]
 
@@ -1258,9 +1002,7 @@ def elite_diagnostics(
         ) ** 2
     )
 
-    # ----------------------------
     # 95th Percentile MAE
-    # ----------------------------
 
     threshold = np.percentile(
         y_true,
@@ -1278,9 +1020,7 @@ def elite_diagnostics(
         )
     )
 
-    # ----------------------------
     # 95th Percentile MSE
-    # ----------------------------
 
     diagnostics["P95_MSE"] = np.mean(
         (
@@ -1291,23 +1031,11 @@ def elite_diagnostics(
 
     return diagnostics
 
-# ============================================================
 # Test Evaluation
-# ============================================================
 
 @torch.no_grad()
 def evaluate_test():
-    """
-    Evaluate best checkpoint on test nodes.
-
-    Returns
-    -------
-    metrics
-    y_true
-    y_pred
-    node_ids
-    elite_metrics
-    """
+    """Evaluate model on test dataset."""
 
     model.eval()
 
@@ -1361,10 +1089,7 @@ def evaluate_test():
         elite_metrics,
     )
 
-
-# ============================================================
 # Run Evaluation
-# ============================================================
 
 (
     test_metrics,
@@ -1374,10 +1099,7 @@ def evaluate_test():
     elite_metrics,
 ) = evaluate_test()
 
-
-# ============================================================
 # Print Test Metrics
-# ============================================================
 
 print("\nTest Metrics")
 print("-" * 40)
@@ -1389,10 +1111,7 @@ for metric, value in test_metrics.items():
         f"{value:.4f}"
     )
 
-
-# ============================================================
 # Print Elite Diagnostics
-# ============================================================
 
 print("\nElite Influencer Diagnostics")
 print("-" * 40)
@@ -1404,10 +1123,7 @@ for metric, value in elite_metrics.items():
         f"{value:.4f}"
     )
 
-
-# ============================================================
 # Top-10 Influence Analysis
-# ============================================================
 
 print("\nTop-10 Ranking Analysis")
 print("-" * 40)
@@ -1419,7 +1135,6 @@ true_top10 = np.argsort(
 pred_top10 = np.argsort(
     y_pred_test
 )[-10:][::-1]
-
 
 print("\nGround Truth Top-10:")
 
@@ -1435,7 +1150,6 @@ for rank, idx in enumerate(
         f"{y_true_test[idx]:8.4f}"
     )
 
-
 print("\nPredicted Top-10:")
 
 for rank, idx in enumerate(
@@ -1450,10 +1164,7 @@ for rank, idx in enumerate(
         f"{y_pred_test[idx]:8.4f}"
     )
 
-
-# ============================================================
 # Prediction Export
-# ============================================================
 
 prediction_df = pd.DataFrame({
 
@@ -1486,10 +1197,7 @@ print(
     f"{PREDICTION_PATH}"
 )
 
-
-# ============================================================
 # Experiment Summary
-# ============================================================
 
 print("\n" + "=" * 60)
 print("GAT IC EXPERIMENT SUMMARY")
@@ -1561,7 +1269,6 @@ print(
     f"{best_val_mae:.4f}"
 )
 
-
 print("\nTest Performance")
 print("-" * 40)
 
@@ -1571,7 +1278,6 @@ for metric, value in test_metrics.items():
         f"{metric:<20}: "
         f"{value:.4f}"
     )
-
 
 print("\nElite Diagnostics")
 print("-" * 40)
@@ -1583,15 +1289,11 @@ for metric, value in elite_metrics.items():
         f"{value:.4f}"
     )
 
-
 print("=" * 60)
 print("Experiment Finished Successfully")
 print("=" * 60)
 
-
-# ============================================================
 # Save Results
-# ============================================================
 
 with open(
     RESULTS_PATH,
@@ -1648,7 +1350,6 @@ with open(
             f"{metric}: "
             f"{value}\n"
         )
-
 
 print(
     f"\nResults saved to:\n"

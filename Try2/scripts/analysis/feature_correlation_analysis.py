@@ -6,9 +6,7 @@ import torch
 from scipy.stats import spearmanr
 from scipy.stats import false_discovery_control
 
-# ============================================================
-# CONFIGURATION
-# ============================================================
+# Configuration
 
 DATA_DIR = Path("Try2/data")
 RESULTS_DIR = Path("Try2/results/feature_analysis")
@@ -37,25 +35,8 @@ BEHAVIORAL_FEATURES = [
 
 FEATURES = STRUCTURAL_FEATURES + BEHAVIORAL_FEATURES
 
-
-# ============================================================
-# LOAD FROZEN ARTIFACTS
-# ============================================================
+# Load Frozen Artifacts
 def load_data():
-    """
-    Load all frozen Try2 artifacts.
-
-    Returns
-    -------
-    merged : pd.DataFrame
-        DataFrame containing:
-        - 9 frozen features
-        - ic_mean
-        - lt_mean
-
-    train_nodes : set
-        Node IDs belonging to the frozen training split.
-    """
 
     print("Loading frozen artifacts...")
 
@@ -85,9 +66,7 @@ def load_data():
     print("IC labels shape  :", ic.shape)
     print("LT labels shape  :", lt.shape)
 
-    # --------------------------------------------------------
     # Merge structural + behavioral
-    # --------------------------------------------------------
 
     features = struct.merge(
         behavioral,
@@ -95,9 +74,7 @@ def load_data():
         how="inner"
     )
 
-    # --------------------------------------------------------
     # Merge labels
-    # --------------------------------------------------------
 
     merged = (
         features
@@ -115,9 +92,7 @@ def load_data():
 
     print("\nMerged labeled shape:", merged.shape)
 
-    # --------------------------------------------------------
     # Sanity checks
-    # --------------------------------------------------------
 
     expected_keys = {
         "train_idx",
@@ -138,9 +113,7 @@ def load_data():
             f"found {len(merged)}."
         )
 
-    # --------------------------------------------------------
     # Determine train nodes using frozen PyG object
-    # --------------------------------------------------------
 
     pyg_data = torch.load(
     DATA_DIR / "higgs_pyg.pt",
@@ -171,9 +144,7 @@ def load_data():
 
     print("Total graph train nodes:", len(train_nodes))
 
-# --------------------------------------------------------
 # Restrict to labeled nodes only
-# --------------------------------------------------------
 
     labeled_train_nodes = set(
         merged[
@@ -189,29 +160,13 @@ def load_data():
         f"found {len(labeled_train_nodes)}.")
 
     return merged, labeled_train_nodes
-# ============================================================
-# DATASET MODES
-# ============================================================
+# Dataset Modes
 
 def get_dataset(
     merged_df,
     train_nodes,
     mode="all"
 ):
-    """
-    Returns the dataframe corresponding
-    to the requested analysis mode.
-
-    Parameters
-    ----------
-    mode : str
-        "all"   -> all 1000 labeled nodes
-        "train" -> train split only
-
-    Returns
-    -------
-    DataFrame
-    """
 
     if mode == "all":
 
@@ -242,15 +197,10 @@ def get_dataset(
             f"Unknown mode: {mode}"
         )
 
-
-# ============================================================
-# VALIDATION CHECKS
-# ============================================================
+# Validation Checks
 
 def validate_dataframe(df):
-    """
-    Ensures all frozen features exist.
-    """
+    """Ensures all frozen features exist."""
 
     missing = [
         feat
@@ -274,29 +224,12 @@ def validate_dataframe(df):
     for feat in FEATURES:
         print(" -", feat)
 
-# ============================================================
-# SPEARMAN CORRELATION ANALYSIS
-# ============================================================
+# Spearman Correlation Analysis
 
 def compute_correlations(
     df,
     label_column
 ):
-    """
-    Compute Spearman correlations between
-    frozen features and a diffusion label.
-
-    Parameters
-    ----------
-    df : DataFrame
-
-    label_column : str
-        "ic_mean" or "lt_mean"
-
-    Returns
-    -------
-    DataFrame
-    """
 
     results = []
 
@@ -331,25 +264,11 @@ def compute_correlations(
 
     return results_df
 
-
-# ============================================================
-# MULTIPLE TESTING CORRECTION
-# ============================================================
+# Multiple Testing Correction
 
 def apply_fdr_correction(
     results_df
 ):
-    """
-    Apply Benjamini-Hochberg FDR.
-
-    Parameters
-    ----------
-    results_df : DataFrame
-
-    Returns
-    -------
-    DataFrame
-    """
 
     corrected = results_df.copy()
 
@@ -364,25 +283,11 @@ def apply_fdr_correction(
 
     return corrected
 
-
-# ============================================================
-# FEATURE RANKINGS
-# ============================================================
+# Feature Rankings
 
 def rank_features(
     results_df
 ):
-    """
-    Sort features by absolute correlation.
-
-    Parameters
-    ----------
-    results_df : DataFrame
-
-    Returns
-    -------
-    DataFrame
-    """
 
     ranked = (
         results_df
@@ -410,23 +315,14 @@ def rank_features(
 
     return ranked[cols]
 
-
-# ============================================================
-# CONSOLE REPORTING
-# ============================================================
+# Console Reporting
 
 def print_ranking(
     ranked_df,
     title
 ):
-    """
-    Pretty-print rankings.
-    """
 
-    print("\n" + "=" * 60)
     print(title)
-    print("=" * 60)
-
     for _, row in ranked_df.iterrows():
 
         sig = "YES" if row["significant"] else "NO"
@@ -440,24 +336,13 @@ def print_ranking(
             f"sig={sig}"
         )
 
-
-# ============================================================
-# EXPORT RESULTS
-# ============================================================
+# Export Results
 
 def save_results(
     ranked_df,
     filename
 ):
-    """
-    Save ranking tables.
-
-    Parameters
-    ----------
-    ranked_df : DataFrame
-
-    filename : str
-    """
+    # Save ranking tables
 
     output_path = RESULTS_DIR / filename
 
@@ -470,10 +355,7 @@ def save_results(
         f"\nSaved: {output_path}"
     )
 
-
-# ============================================================
-# COMPLETE PIPELINE FOR ONE LABEL
-# ============================================================
+# Complete Pipeline For One Label
 
 def analyze_label(
     df,
@@ -481,18 +363,6 @@ def analyze_label(
     output_filename,
     title
 ):
-    """
-    Full workflow:
-        correlation
-        FDR correction
-        ranking
-        printing
-        saving
-
-    Returns
-    -------
-    ranked_df
-    """
 
     results = compute_correlations(
         df,
@@ -519,22 +389,12 @@ def analyze_label(
 
     return ranked
 
-# ============================================================
-# IC–LT FEATURE RANK STABILITY
-# ============================================================
+# Ic–Lt Feature Rank Stability
 
 def compute_rank_stability(
     ic_ranked,
     lt_ranked
 ):
-    """
-    Compare IC and LT feature rankings.
-
-    Returns
-    -------
-    rho : float
-    p   : float
-    """
 
     ic_order = (
         ic_ranked
@@ -555,10 +415,7 @@ def compute_rank_stability(
 
     return float(rho), float(p)
 
-
-# ============================================================
-# SUMMARY REPORT
-# ============================================================
+# Summary Report
 
 def append_summary(
     lines,
@@ -568,13 +425,8 @@ def append_summary(
     stability_rho,
     stability_p
 ):
-    """
-    Append results to summary report.
-    """
 
-    lines.append("=" * 70)
     lines.append(section_title)
-    lines.append("=" * 70)
 
     lines.append("")
 
@@ -603,7 +455,7 @@ def append_summary(
     lines.append("")
 
     lines.append(
-        "IC–LT Rank Stability:"
+        "IC-LT Rank Stability:"
     )
 
     lines.append(
@@ -617,10 +469,7 @@ def append_summary(
     lines.append("")
     lines.append("")
 
-
-# ============================================================
-# MAIN ANALYSIS PIPELINE
-# ============================================================
+# Main Analysis Pipeline
 
 def run_analysis(
     merged,
@@ -628,9 +477,6 @@ def run_analysis(
     mode,
     summary_lines
 ):
-    """
-    Execute one analysis mode.
-    """
 
     df = get_dataset(
         merged,
@@ -640,9 +486,7 @@ def run_analysis(
 
     validate_dataframe(df)
 
-    # --------------------------------------------------------
-    # IC
-    # --------------------------------------------------------
+    # Ic
 
     ic_ranked = analyze_label(
         df=df,
@@ -654,9 +498,7 @@ def run_analysis(
         )
     )
 
-    # --------------------------------------------------------
-    # LT
-    # --------------------------------------------------------
+    # Lt
 
     lt_ranked = analyze_label(
         df=df,
@@ -668,21 +510,17 @@ def run_analysis(
         )
     )
 
-    # --------------------------------------------------------
     # Rank Stability
-    # --------------------------------------------------------
 
     rho, p = compute_rank_stability(
         ic_ranked,
         lt_ranked
     )
 
-    print("\n" + "=" * 60)
     print(
-        f"{mode.upper()} IC–LT "
+        f"{mode.upper()} IC-LT "
         "RANK STABILITY"
     )
-    print("=" * 60)
 
     print(
         f"Spearman rho = {rho:.4f}"
@@ -704,27 +542,19 @@ def run_analysis(
         stability_p=p
     )
 
-
-# ============================================================
-# ENTRY POINT
-# ============================================================
+# Entry Point
 
 def main():
 
-    print("\n" + "=" * 70)
     print(
-        "FEATURE–INFLUENCE "
+        "FEATURE-INFLUENCE "
         "CORRELATION ANALYSIS"
     )
-    print("=" * 70)
-
     merged, train_nodes = load_data()
 
     summary_lines = []
 
-    # --------------------------------------------------------
     # All labeled nodes (paper)
-    # --------------------------------------------------------
 
     run_analysis(
         merged=merged,
@@ -733,9 +563,7 @@ def main():
         summary_lines=summary_lines
     )
 
-    # --------------------------------------------------------
     # Train only (appendix)
-    # --------------------------------------------------------
 
     run_analysis(
         merged=merged,
@@ -744,9 +572,7 @@ def main():
         summary_lines=summary_lines
     )
 
-    # --------------------------------------------------------
     # Save summary
-    # --------------------------------------------------------
 
     summary_path = (
         RESULTS_DIR /
@@ -766,7 +592,6 @@ def main():
     print("\nSaved:", summary_path)
 
     print("\nAnalysis complete.")
-
 
 if __name__ == "__main__":
     main()

@@ -3,14 +3,10 @@ import pandas as pd
 import networkx as nx
 import numpy as np
 
-print("=" * 80)
-print("PROJECT_HAIL – Try2")
-print("Step 6c: Final Diffusion Sanity Check")
-print("=" * 80)
+print("Diffusion Sanity Check")
 
-# ------------------------------------------------------------
+
 # Paths
-# ------------------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -21,9 +17,7 @@ IC_PATH = DATA_DIR / "ic_labels.csv"
 LT_PATH = DATA_DIR / "lt_labels.csv"
 NODES_PATH = DATA_DIR / "labeled_nodes.csv"
 
-# ------------------------------------------------------------
 # Load graph
-# ------------------------------------------------------------
 
 print("\nLoading graph...")
 
@@ -38,9 +32,7 @@ N = G.number_of_nodes()
 print(f"Nodes : {N:,}")
 print(f"Edges : {G.number_of_edges():,}")
 
-# ------------------------------------------------------------
 # Load labels
-# ------------------------------------------------------------
 
 print("\nLoading IC labels...")
 ic = pd.read_csv(IC_PATH)
@@ -55,13 +47,8 @@ print(f"IC labels : {len(ic)}")
 print(f"LT labels : {len(lt)}")
 print(f"Shared nodes : {len(shared)}")
 
-# ------------------------------------------------------------
 # CHECK 1: Shared node universe
-# ------------------------------------------------------------
-
-print("\n" + "=" * 80)
 print("CHECK 1: Shared Label Universe")
-print("=" * 80)
 
 ic_nodes = set(ic["node"])
 lt_nodes = set(lt["node"])
@@ -75,13 +62,8 @@ else:
     print("IC only :", len(ic_nodes - lt_nodes))
     print("LT only :", len(lt_nodes - ic_nodes))
 
-# ------------------------------------------------------------
 # CHECK 2: IC Statistics
-# ------------------------------------------------------------
-
-print("\n" + "=" * 80)
 print("CHECK 2: IC Statistics")
-print("=" * 80)
 
 print(ic["ic_mean"].describe())
 
@@ -90,14 +72,8 @@ ic_cv = ic["ic_std"] / ic["ic_mean"]
 print("\nIC Coefficient of Variation:")
 print(ic_cv.describe())
 
-# ------------------------------------------------------------
 # CHECK 3: LT Statistics
-# ------------------------------------------------------------
-
-print("\n" + "=" * 80)
 print("CHECK 3: LT Statistics")
-print("=" * 80)
-
 print(lt["lt_mean"].describe())
 
 lt_cv = lt["lt_std"] / lt["lt_mean"]
@@ -105,13 +81,9 @@ lt_cv = lt["lt_std"] / lt["lt_mean"]
 print("\nLT Coefficient of Variation:")
 print(lt_cv.describe())
 
-# ------------------------------------------------------------
 # CHECK 4: LT vs IC Relationship
-# ------------------------------------------------------------
 
-print("\n" + "=" * 80)
 print("CHECK 4: LT vs IC Comparison")
-print("=" * 80)
 
 merged = ic.merge(
     lt,
@@ -128,13 +100,9 @@ if merged["lt_mean"].mean() >= merged["ic_mean"].mean():
 else:
     print("WARNING: LT spread unexpectedly lower than IC.")
 
-# ------------------------------------------------------------
 # CHECK 5: Degree Correlation
-# ------------------------------------------------------------
 
-print("\n" + "=" * 80)
 print("CHECK 5: Degree Correlation")
-print("=" * 80)
 
 degree = dict(G.degree())
 
@@ -156,13 +124,8 @@ if lt_corr < 0.8:
 else:
     print("WARNING: LT highly degree-driven.")
 
-# ------------------------------------------------------------
 # CHECK 6: IC vs LT Correlation
-# ------------------------------------------------------------
-
-print("\n" + "=" * 80)
 print("CHECK 6: IC vs LT Correlation")
-print("=" * 80)
 
 ic_lt_corr = merged["ic_mean"].corr(
     merged["lt_mean"]
@@ -175,14 +138,9 @@ if ic_lt_corr < 0.99:
 else:
     print("WARNING: IC and LT labels are nearly identical.")
 
-# ------------------------------------------------------------
 # CHECK 7: Top Influencers
-# ------------------------------------------------------------
 
-print("\n" + "=" * 80)
 print("CHECK 7: Top-10 Overlap")
-print("=" * 80)
-
 top_ic = set(
     merged.nlargest(
         10,
@@ -206,9 +164,7 @@ if overlap < 10:
 else:
     print("WARNING: IC and LT rankings are identical.")
 
-# ------------------------------------------------------------
 # CHECK 8: Spread Bounds
-# ------------------------------------------------------------
 
 print("\n" + "=" * 80)
 print("CHECK 8: Spread Bounds")
@@ -231,13 +187,7 @@ for col in ["ic_mean", "lt_mean"]:
 if checks_passed:
     print("PASS: Spread bounds valid.")
 
-# ------------------------------------------------------------
-# FINAL VERDICT
-# ------------------------------------------------------------
-
-print("\n" + "=" * 80)
-print("FINAL VERDICT")
-print("=" * 80)
+# Final Verdict
 
 if (
     ic_nodes == lt_nodes == shared_nodes
@@ -246,7 +196,6 @@ if (
     and lt_corr < 0.8
     and ic_lt_corr < 0.99
 ):
-    print(" Step 6 FINALIZED.")
     print(" IC labels validated.")
     print(" LT labels validated.")
     print(" Shared node universe confirmed.")

@@ -1,8 +1,3 @@
-# ============================================================
-# utils_metrics.py
-# Chunk 1: Imports and Ranking Metrics
-# ============================================================
-
 import numpy as np
 import torch
 
@@ -15,25 +10,7 @@ from sklearn.metrics import (
     ndcg_score,
 )
 
-
-# ============================================================
-# Precision@K
-# ============================================================
-
 def precision_at_k(y_true, y_pred, k=10):
-    """
-    Precision@K based on overlap of top-K nodes.
-
-    Parameters
-    ----------
-    y_true : np.ndarray
-    y_pred : np.ndarray
-    k : int
-
-    Returns
-    -------
-    float
-    """
 
     k = min(k, len(y_true))
 
@@ -48,15 +25,7 @@ def precision_at_k(y_true, y_pred, k=10):
 
     return overlap / k
 
-
-# ============================================================
-# NDCG@K
-# ============================================================
-
 def ndcg_at_k(y_true, y_pred, k=10):
-    """
-    NDCG@K using sklearn.
-    """
 
     k = min(k, len(y_true))
 
@@ -66,19 +35,7 @@ def ndcg_at_k(y_true, y_pred, k=10):
         k=k
     )
 
-# ============================================================
-# Complete Evaluation Metrics
-# ============================================================
-
 def compute_metrics(y_true, y_pred):
-    """
-    Compute all regression and ranking metrics.
-
-    Returns
-    -------
-    dict
-    """
-
     mae = mean_absolute_error(
         y_true,
         y_pred
@@ -122,19 +79,12 @@ def compute_metrics(y_true, y_pred):
         "Precision@10": precision10,
     }
 
-# ============================================================
-# Masked Huber Loss
-# ============================================================
-
 def masked_huber_loss(
     predictions,
     targets,
     mask,
     loss_fn,
 ):
-    """
-    Compute Huber loss only on masked nodes.
-    """
 
     valid_mask = (
         mask &
@@ -150,20 +100,12 @@ def masked_huber_loss(
         true
     )
 
-
-# ============================================================
-# Extract Predictions
-# ============================================================
-
 @torch.no_grad()
 def get_mask_predictions(
     predictions,
     targets,
     mask,
 ):
-    """
-    Convert masked predictions to numpy.
-    """
 
     valid_mask = (
         mask &
@@ -186,21 +128,11 @@ def get_mask_predictions(
 
     return y_true, y_pred
 
-# ============================================================
-# Save Predictions
-# ============================================================
-
 def save_predictions(
     path,
     y_true,
     y_pred,
 ):
-    """
-    Save predictions as CSV.
-
-    Columns:
-        y_true,y_pred
-    """
 
     import pandas as pd
 

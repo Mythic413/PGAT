@@ -25,9 +25,7 @@ print("\nOriginal Graph:")
 print(f"Nodes: {G.number_of_nodes():,}")
 print(f"Edges: {G.number_of_edges():,}")
 
-# --------------------------------------------------
 # Largest Weakly Connected Component
-# --------------------------------------------------
 
 print("\nFinding largest connected component...")
 
@@ -40,9 +38,7 @@ G_cc = G.subgraph(largest_cc).copy()
 print(f"Largest CC Nodes: {G_cc.number_of_nodes():,}")
 print(f"Largest CC Edges: {G_cc.number_of_edges():,}")
 
-# --------------------------------------------------
 # Canonical Forest Fire Sampling
-# --------------------------------------------------
 
 print(f"\nExtracting {TARGET_NODES} nodes using Canonical Forest Fire...")
 
@@ -99,9 +95,7 @@ while len(visited) < TARGET_NODES:
         if v not in visited
     ]
 
-    # --------------------------------------------------
     # Geometric Burning
-    # --------------------------------------------------
 
     forward_count = (
         rng.geometric(1.0 - FORWARD_BURN_PROB) - 1
@@ -111,9 +105,7 @@ while len(visited) < TARGET_NODES:
         rng.geometric(1.0 - BACKWARD_BURN_PROB) - 1
     )
 
-    # --------------------------------------------------
     # Sample exact neighbors to burn
-    # --------------------------------------------------
 
     if len(unvisited_successors) > 0 and forward_count > 0:
 
@@ -147,9 +139,7 @@ while len(visited) < TARGET_NODES:
     else:
         to_burn_backward = []
 
-    # --------------------------------------------------
     # Merge and ignite
-    # --------------------------------------------------
 
     to_burn = set(to_burn_forward) | set(to_burn_backward)
 
@@ -161,9 +151,7 @@ while len(visited) < TARGET_NODES:
         visited.add(v)
         fire_queue.append(v)
 
-# --------------------------------------------------
 # Build induced subgraph
-# --------------------------------------------------
 
 subgraph = G_cc.subgraph(visited).copy()
 
@@ -194,9 +182,7 @@ print(
 
 print(f"Forest Fire Restarts: {restart_count}")
 
-# --------------------------------------------------
 # Save
-# --------------------------------------------------
 
 nx.write_edgelist(
     subgraph,

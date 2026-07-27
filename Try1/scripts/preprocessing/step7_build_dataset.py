@@ -12,11 +12,8 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 print("Using:", device)
 
-# ====================================================
 # Load graph
-# ====================================================
-
-print("\nLoading graph...")
+print("\nLoading graph.")
 
 G = nx.read_edgelist(
     "data/higgs_5000.edgelist",
@@ -34,10 +31,7 @@ node_to_idx = {
 print("Nodes:", len(nodes))
 print("Edges:", G.number_of_edges())
 
-# ====================================================
 # Load features
-# ====================================================
-
 print("\nLoading features...")
 
 struct = pd.read_csv("data/structural_features.csv")
@@ -74,10 +68,7 @@ X = np.concatenate(
 
 print("Feature shape:", X.shape)
 
-# ====================================================
 # Edge Index
-# ====================================================
-
 print("\nBuilding edge index...")
 
 src = []
@@ -95,10 +86,7 @@ edge_index = torch.tensor(
 
 print("Edge index shape:", edge_index.shape)
 
-# ====================================================
 # Edge Attributes
-# ====================================================
-
 print("\nLoading edge probabilities...")
 
 edge_prob = pd.read_csv(
@@ -112,9 +100,7 @@ edge_attr = torch.tensor(
 
 print("Edge attr shape:", edge_attr.shape)
 
-# ====================================================
 # Labels
-# ====================================================
 
 print("\nLoading labels...")
 
@@ -143,10 +129,7 @@ for _, row in lt.iterrows():
 
     y_lt[idx] = row["lt_mean"]
 
-# ====================================================
 # Masks
-# ====================================================
-
 print("\nBuilding masks...")
 
 labeled = torch.where(
@@ -189,10 +172,7 @@ print("Train:", train_mask.sum().item())
 print("Val  :", val_mask.sum().item())
 print("Test :", test_mask.sum().item())
 
-# ====================================================
 # Data Object
-# ====================================================
-
 data = Data(
     x=torch.tensor(X, dtype=torch.float),
     edge_index=edge_index,

@@ -1,9 +1,5 @@
-# ============================================================
-# train_graphsage_ic.py
 # Try2 Vanilla Benchmark
-# Chunk 1: Imports, Reproducibility, Configuration,
-#           Dataset Loading
-# ============================================================
+# Dataset Loading
 
 import os
 import copy
@@ -26,19 +22,11 @@ from sklearn.metrics import (
 
 warnings.filterwarnings("ignore")
 
-
-# ============================================================
 # PyG Imports
-# ============================================================
 
 from torch_geometric.nn import SAGEConv
 
-
-
-
-# ============================================================
 # Reproducibility
-# ============================================================
 
 SEED = 42
 
@@ -54,10 +42,7 @@ if torch.cuda.is_available():
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-
-# ============================================================
 # Configuration
-# ============================================================
 
 DATA_PATH = "Try2/data/higgs_pyg.pt"
 
@@ -76,17 +61,13 @@ PREDICTIONS_PATH = (
     "graphsage_ic_vanilla_predictions.csv"
 )
 
-
 DEVICE = torch.device(
     "cuda"
     if torch.cuda.is_available()
     else "cpu"
 )
 
-
-# ============================================================
 # Frozen Vanilla Benchmark Hyperparameters
-# ============================================================
 
 HIDDEN_DIM = 32
 DROPOUT = 0.1
@@ -99,10 +80,7 @@ PATIENCE = 100
 
 GRAD_CLIP = 1.0
 
-
-# ============================================================
 # Create Output Directories
-# ============================================================
 
 os.makedirs(
     os.path.dirname(CHECKPOINT_PATH),
@@ -119,10 +97,7 @@ os.makedirs(
     exist_ok=True,
 )
 
-
-# ============================================================
 # Dataset Loading
-# ============================================================
 
 print("=" * 60)
 print("GraphSAGE-IC Vanilla Benchmark")
@@ -138,16 +113,12 @@ data = torch.load(
 
 print(data)
 
-
-
 def precision_at_k(
     y_true,
     y_pred,
     k=10,
 ):
-    """
-    Precision@K based on Top-K overlap.
-    """
+    """Compute Precision@K."""
 
     k = min(k, len(y_true))
 
@@ -164,16 +135,13 @@ def precision_at_k(
     )
 
     return overlap / k
-
 
 def recall_at_k(
     y_true,
     y_pred,
     k=10,
 ):
-    """
-    Recall@K.
-    """
+    """Compute Recall@K."""
 
     k = min(k, len(y_true))
 
@@ -191,15 +159,12 @@ def recall_at_k(
 
     return overlap / k
 
-
 def ndcg_at_k(
     y_true,
     y_pred,
     k=10,
 ):
-    """
-    NDCG@K.
-    """
+    """Compute NDCG@K."""
 
     k = min(k, len(y_true))
 
@@ -212,15 +177,12 @@ def ndcg_at_k(
         k=k,
     )
 
-
 def topk_overlap(
     y_true,
     y_pred,
     k=10,
 ):
-    """
-    Absolute Top-K overlap count.
-    """
+    """Compute Top-K overlap."""
 
     k = min(k, len(y_true))
 
@@ -236,39 +198,13 @@ def topk_overlap(
         )
     )
 
-
-# ============================================================
 # Evaluation Metrics
-# ============================================================
 
 def compute_metrics(
     y_true,
     y_pred,
 ):
-    """
-    Publication-grade metrics.
-
-    Regression:
-        MAE
-        RMSE
-        R²
-
-    Rank Correlation:
-        Spearman
-        Kendall Tau
-
-    Retrieval:
-        Precision@10
-        Precision@20
-        Recall@10
-        Recall@20
-        NDCG@10
-        NDCG@20
-
-    Influence Recovery:
-        Top10Overlap
-        Top20Overlap
-    """
+    """Compute regression and ranking metrics."""
 
     mae = mean_absolute_error(
         y_true,
@@ -363,19 +299,11 @@ def elite_diagnostics(
     y_true,
     y_pred,
 ):
-    """
-    Elite influencer diagnostics.
-
-    Returns
-    -------
-    dict
-    """
+    """Compute elite diagnostics."""
 
     diagnostics = {}
 
-    # ----------------------------
     # Top-1 MAE
-    # ----------------------------
 
     idx = np.argsort(y_true)[-1:]
 
@@ -386,9 +314,7 @@ def elite_diagnostics(
         )
     )
 
-    # ----------------------------
     # Top-5 MAE
-    # ----------------------------
 
     idx = np.argsort(y_true)[-5:]
 
@@ -399,9 +325,7 @@ def elite_diagnostics(
         )
     )
 
-    # ----------------------------
     # Top-10 MAE
-    # ----------------------------
 
     idx = np.argsort(y_true)[::-1][:10]
 
@@ -412,9 +336,7 @@ def elite_diagnostics(
         )
     )
 
-    # ----------------------------
     # Top-1 MSE
-    # ----------------------------
 
     idx = np.argsort(y_true)[-1:]
 
@@ -425,9 +347,7 @@ def elite_diagnostics(
         ) ** 2
     )
 
-    # ----------------------------
     # Top-5 MSE
-    # ----------------------------
 
     idx = np.argsort(y_true)[-5:]
 
@@ -438,9 +358,7 @@ def elite_diagnostics(
         ) ** 2
     )
 
-    # ----------------------------
     # Top-10 MSE
-    # ----------------------------
 
     idx = np.argsort(y_true)[::-1][:10]
 
@@ -451,9 +369,7 @@ def elite_diagnostics(
         ) ** 2
     )
 
-    # ----------------------------
     # 95th Percentile MAE
-    # ----------------------------
 
     threshold = np.percentile(
         y_true,
@@ -471,9 +387,7 @@ def elite_diagnostics(
         )
     )
 
-    # ----------------------------
     # 95th Percentile MSE
-    # ----------------------------
 
     diagnostics["P95_MSE"] = np.mean(
         (
@@ -484,9 +398,7 @@ def elite_diagnostics(
 
     return diagnostics
 
-# ============================================================
 # Dataset Summary
-# ============================================================
 
 print("\nDataset Summary")
 print("-" * 40)
@@ -510,10 +422,7 @@ print(
     f"{data.edge_attr.shape[1]}"
 )
 
-
-# ============================================================
 # Frozen Split Verification
-# ============================================================
 
 train_count = int(
     data.train_mask.sum().item()
@@ -534,7 +443,6 @@ print(f"Train Nodes : {train_count}")
 print(f"Val Nodes   : {val_count}")
 print(f"Test Nodes  : {test_count}")
 
-
 assert train_count == 700, (
     f"Expected 700 train nodes, "
     f"found {train_count}"
@@ -552,10 +460,7 @@ assert test_count == 152, (
 
 print("\n✓ Frozen splits verified.")
 
-
-# ============================================================
 # Feature Verification
-# ============================================================
 
 print("\nFeature Verification")
 print("-" * 40)
@@ -571,10 +476,7 @@ assert data.x.shape == (5000, 9), (
 
 print("✓ Frozen feature matrix verified.")
 
-
-# ============================================================
 # IC Label Statistics
-# ============================================================
 
 print("\nIC Label Statistics")
 print("-" * 40)
@@ -600,10 +502,7 @@ print(
     f"{data.y_ic.max().item():.4f}"
 )
 
-
-# ============================================================
 # Move Dataset to Device
-# ============================================================
 
 data = data.to(DEVICE)
 
@@ -612,49 +511,16 @@ print("\nUsing Device :", DEVICE)
 print("\nDataset Ready.")
 print("=" * 60)
 
-# ============================================================
-# Chunk 2: GraphSAGE Model, Loss, Optimizer,
-#           Scheduler, Training Setup
-# ============================================================
+# Scheduler, Training Setup
 
 import torch.nn.functional as F
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-
-# ============================================================
 # Vanilla GraphSAGE Model Definition
-# ============================================================
 
 class GraphSAGE(nn.Module):
-    """
-    Vanilla GraphSAGE for IC Influence Estimation
-
-    Frozen Vanilla Architecture:
-
-        Input (9)
-            ↓
-        SAGEConv(9 → 32)
-            ↓
-        LayerNorm(32)
-            ↓
-        ReLU
-            ↓
-        Dropout(0.1)
-            ↓
-        SAGEConv(32 → 1)
-            ↓
-        Output
-
-    Notes
-    -----
-    • Authentic GraphSAGE preserved.
-    • No decoder.
-    • No bypass.
-    • No residual projection.
-    • No concatenation.
-    • LayerNorm treated as shared stabilization.
-    """
+    """GraphSAGE model."""
 
     def __init__(
         self,
@@ -664,9 +530,7 @@ class GraphSAGE(nn.Module):
     ):
         super().__init__()
 
-        # ----------------------------------------------------
         # Hidden GraphSAGE Layer
-        # ----------------------------------------------------
 
         self.conv1 = SAGEConv(
             in_channels,
@@ -677,9 +541,7 @@ class GraphSAGE(nn.Module):
             hidden_channels
         )
 
-        # ----------------------------------------------------
         # Output Layer
-        # ----------------------------------------------------
 
         self.conv2 = SAGEConv(
             hidden_channels,
@@ -693,24 +555,9 @@ class GraphSAGE(nn.Module):
         x,
         edge_index,
     ):
-        """
-        Parameters
-        ----------
-        x : Tensor
-            Node features [N,9]
+        """Parameters."""
 
-        edge_index : Tensor
-            Graph connectivity
-
-        Returns
-        -------
-        Tensor
-            Predictions [N]
-        """
-
-        # ----------------------------------------------------
         # Hidden Layer
-        # ----------------------------------------------------
 
         x = self.conv1(
             x,
@@ -727,9 +574,7 @@ class GraphSAGE(nn.Module):
             training=self.training,
         )
 
-        # ----------------------------------------------------
         # Output Layer
-        # ----------------------------------------------------
 
         x = self.conv2(
             x,
@@ -738,10 +583,7 @@ class GraphSAGE(nn.Module):
 
         return x.squeeze(-1)
 
-
-# ============================================================
 # Initialize Model
-# ============================================================
 
 model = GraphSAGE(
     in_channels=data.x.shape[1],
@@ -749,16 +591,12 @@ model = GraphSAGE(
     dropout=DROPOUT,
 ).to(DEVICE)
 
-
-# ============================================================
 # Model Summary
-# ============================================================
 
 print("\nModel Architecture")
 print("-" * 40)
 
 print(model)
-
 
 total_params = sum(
     p.numel()
@@ -781,17 +619,11 @@ print(
     f"{trainable_params:,}"
 )
 
-
-# ============================================================
 # Frozen Vanilla Loss Function
-# ============================================================
 
 criterion = nn.MSELoss()
 
-
-# ============================================================
 # Frozen Vanilla Optimizer
-# ============================================================
 
 optimizer = AdamW(
     model.parameters(),
@@ -799,10 +631,7 @@ optimizer = AdamW(
     weight_decay=WEIGHT_DECAY,
 )
 
-
-# ============================================================
 # Frozen Vanilla Scheduler
-# ============================================================
 
 scheduler = ReduceLROnPlateau(
     optimizer,
@@ -812,10 +641,7 @@ scheduler = ReduceLROnPlateau(
     min_lr=1e-5,
 )
 
-
-# ============================================================
 # Early Stopping Variables
-# ============================================================
 
 best_val_mae = float("inf")
 
@@ -825,10 +651,7 @@ best_state_dict = None
 
 patience_counter = 0
 
-
-# ============================================================
 # Training History
-# ============================================================
 
 history = {
     "train_loss": [],
@@ -836,10 +659,7 @@ history = {
     "learning_rate": [],
 }
 
-
-# ============================================================
 # Frozen Benchmark Configuration Summary
-# ============================================================
 
 print("\nTraining Configuration")
 print("-" * 40)
@@ -906,47 +726,30 @@ print("  the best validation checkpoint")
 print("\nModel Setup Complete.")
 print("=" * 60)
 
-# ============================================================
-# Chunk 3: Training Loop, Validation,
-#           Scheduler, Early Stopping
-# ============================================================
+# Scheduler, Early Stopping
 
 print("\n" + "=" * 60)
 print("Starting Vanilla GraphSAGE Training (IC)")
 print("=" * 60)
 
-
-# ============================================================
 # Training Function
-# ============================================================
 
 def train_one_epoch():
-    """
-    One full-batch training epoch.
-
-    Returns
-    -------
-    float
-        Training MSE loss.
-    """
+    """Train one epoch."""
 
     model.train()
 
     optimizer.zero_grad()
 
-    # --------------------------------------------------------
     # Forward Pass
-    # --------------------------------------------------------
 
     predictions = model(
         data.x,
         data.edge_index,
     )
 
-    # --------------------------------------------------------
     # Train Loss
     # (Frozen train split only)
-    # --------------------------------------------------------
 
     train_pred = predictions[
         data.train_mask
@@ -961,15 +764,11 @@ def train_one_epoch():
         train_true,
     )
 
-    # --------------------------------------------------------
     # Backpropagation
-    # --------------------------------------------------------
 
     loss.backward()
 
-    # --------------------------------------------------------
     # Frozen Gradient Clipping
-    # --------------------------------------------------------
 
     torch.nn.utils.clip_grad_norm_(
         model.parameters(),
@@ -980,21 +779,11 @@ def train_one_epoch():
 
     return loss.item()
 
-
-# ============================================================
 # Validation Function
-# ============================================================
 
 @torch.no_grad()
 def validate():
-    """
-    Compute validation MAE.
-
-    Returns
-    -------
-    float
-        Validation MAE.
-    """
+    """Compute validation metrics."""
 
     model.eval()
 
@@ -1018,36 +807,25 @@ def validate():
 
     return val_mae
 
-
-# ============================================================
 # Main Training Loop
-# ============================================================
 
 for epoch in range(1, EPOCHS + 1):
 
-    # --------------------------------------------------------
     # Training
-    # --------------------------------------------------------
 
     train_loss = train_one_epoch()
 
-    # --------------------------------------------------------
     # Validation
-    # --------------------------------------------------------
 
     val_mae = validate()
 
-    # --------------------------------------------------------
     # Scheduler Update
-    # --------------------------------------------------------
 
     scheduler.step(val_mae)
 
     current_lr = optimizer.param_groups[0]["lr"]
 
-    # --------------------------------------------------------
     # Save History
-    # --------------------------------------------------------
 
     history["train_loss"].append(
         train_loss
@@ -1061,12 +839,9 @@ for epoch in range(1, EPOCHS + 1):
         current_lr
     )
 
-    # --------------------------------------------------------
     # Best Checkpoint Selection
-    #
-    # FROZEN RULE:
+    # Frozen Rule:
     # Selection based ONLY on validation MAE
-    # --------------------------------------------------------
 
     if val_mae < best_val_mae:
 
@@ -1089,9 +864,7 @@ for epoch in range(1, EPOCHS + 1):
 
         patience_counter += 1
 
-    # --------------------------------------------------------
     # Logging
-    # --------------------------------------------------------
 
     if (
         epoch == 1
@@ -1107,12 +880,9 @@ for epoch in range(1, EPOCHS + 1):
             f"LR: {current_lr:.6f}"
         )
 
-    # --------------------------------------------------------
     # Early Stopping
-    #
-    # FROZEN RULE:
+    # Frozen Rule:
     # Patience = 100
-    # --------------------------------------------------------
 
     if patience_counter >= PATIENCE:
 
@@ -1125,10 +895,7 @@ for epoch in range(1, EPOCHS + 1):
 
         break
 
-
-# ============================================================
 # Training Complete
-# ============================================================
 
 print("\n" + "=" * 60)
 print("Training Complete")
@@ -1154,10 +921,7 @@ print(
     f"{CHECKPOINT_PATH}"
 )
 
-
-# ============================================================
 # Restore Best Checkpoint
-# ============================================================
 
 print("\nRestoring Best Validation Checkpoint...")
 
@@ -1175,10 +939,7 @@ print("✓ Best checkpoint restored.")
 
 print("=" * 60)
 
-
-# ============================================================
 # Leakage Audit
-# ============================================================
 
 print("\nLeakage Audit")
 print("-" * 40)
@@ -1210,34 +971,17 @@ print(
 
 print("=" * 60)
 
-# ============================================================
-# Chunk 4: Final Evaluation, Elite Diagnostics,
-#           Prediction Export, Results Summary
-# ============================================================
+# Prediction Export, Results Summary
 
 print("\n" + "=" * 60)
 print("Final Evaluation on Test Set")
 print("=" * 60)
 
-
-# ============================================================
 # Test Evaluation
-# ============================================================
 
 @torch.no_grad()
 def evaluate_test():
-    """
-    Evaluate restored best checkpoint on the
-    frozen test split.
-
-    Returns
-    -------
-    metrics : dict
-    elite_metrics : dict
-    y_true : ndarray
-    y_pred : ndarray
-    node_ids : ndarray
-    """
+    """Evaluate model on test dataset."""
 
     model.eval()
 
@@ -1294,10 +1038,7 @@ def evaluate_test():
         node_ids,
     )
 
-
-# ============================================================
 # Run Evaluation
-# ============================================================
 
 (
     test_metrics,
@@ -1307,10 +1048,7 @@ def evaluate_test():
     test_node_ids,
 ) = evaluate_test()
 
-
-# ============================================================
 # Print Regression Metrics
-# ============================================================
 
 print("\nRegression Metrics")
 print("-" * 40)
@@ -1332,10 +1070,7 @@ for key in regression_keys:
             f"{test_metrics[key]:.4f}"
         )
 
-
-# ============================================================
 # Print Ranking Metrics
-# ============================================================
 
 print("\nRanking Metrics")
 print("-" * 40)
@@ -1360,10 +1095,7 @@ for key in ranking_keys:
             f"{test_metrics[key]:.4f}"
         )
 
-
-# ============================================================
 # Elite Diagnostics
-# ============================================================
 
 print("\nElite Diagnostics")
 print("-" * 40)
@@ -1388,10 +1120,7 @@ for key in elite_keys:
             f"{elite_metrics[key]:.4f}"
         )
 
-
-# ============================================================
 # Top-10 Analysis
-# ============================================================
 
 print("\nTop-10 Analysis")
 print("-" * 40)
@@ -1428,7 +1157,6 @@ for rank, idx in enumerate(
         f"Spread={y_true_test[idx]:.4f}"
     )
 
-
 print("\nPredicted Top-10")
 
 for rank, idx in enumerate(
@@ -1441,7 +1169,6 @@ for rank, idx in enumerate(
         f"Node={test_node_ids[idx]} | "
         f"Pred={y_pred_test[idx]:.4f}"
     )
-
 
 missed = sorted(
     set(true_top10) - set(pred_top10)
@@ -1461,13 +1188,9 @@ print(
     f"{len(recovered)}"
 )
 
-
-# ============================================================
 # Prediction Export
-# ============================================================
 
 print("\nSaving Predictions...")
-
 
 prediction_df = pd.DataFrame({
     "node_id": test_node_ids,
@@ -1488,10 +1211,7 @@ print(
     f"{PREDICTIONS_PATH}"
 )
 
-
-# ============================================================
 # Experiment Summary
-# ============================================================
 
 print("\n" + "=" * 60)
 print("VANILLA GRAPHSAGE IC SUMMARY")
@@ -1563,10 +1283,7 @@ for key in regression_keys:
             f"{test_metrics[key]:.4f}"
         )
 
-
-# ============================================================
 # Save Results File
-# ============================================================
 
 with open(
     RESULTS_PATH,
@@ -1625,14 +1342,11 @@ with open(
                 f"{elite_metrics[key]:.6f}\n"
             )
 
-
 print(
     f"\nResults saved to:\n"
     f"{RESULTS_PATH}"
 )
 
-
 print("\n" + "=" * 60)
 print("Experiment Finished Successfully")
 print("=" * 60)
-

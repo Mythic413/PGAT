@@ -22,9 +22,7 @@ OUTPUT_PATH = (
     / "data"
     / "behavioral_features.csv"
 )
-# ==================================================
 # Load Higgs-5000 Graph
-# ==================================================
 
 G = nx.read_edgelist(
     GRAPH_PATH,
@@ -37,9 +35,7 @@ node_set = set(nodes)
 
 print(f"Nodes in subgraph: {len(nodes):,}")
 
-# ==================================================
 # Statistics Containers
-# ==================================================
 
 activity_count = defaultdict(int)
 
@@ -50,13 +46,11 @@ re_count = defaultdict(int)
 first_time = {}
 last_time = {}
 
-print("\nProcessing activity file...")
+print("\nProcessing activity file.")
 
 processed = 0
 
-# ==================================================
 # Parse Activity File
-# ==================================================
 
 with gzip.open(ACTIVITY_PATH, "rt") as f:
 
@@ -77,9 +71,7 @@ with gzip.open(ACTIVITY_PATH, "rt") as f:
 
         activity_count[user1] += 1
 
-        # ------------------------------------------
         # Action Counts
-        # ------------------------------------------
 
         if action == "RT":
             rt_count[user1] += 1
@@ -90,9 +82,7 @@ with gzip.open(ACTIVITY_PATH, "rt") as f:
         elif action == "RE":
             re_count[user1] += 1
 
-        # ------------------------------------------
         # Robust Timestamp Tracking
-        # ------------------------------------------
 
         if user1 not in first_time:
 
@@ -113,11 +103,9 @@ with gzip.open(ACTIVITY_PATH, "rt") as f:
 
 print(f"Processed relevant activities: {processed:,}")
 
-# ==================================================
 # Build Behavioral Feature Matrix
-# ==================================================
 
-print("\nBuilding Raw Behavioral Feature Matrix...")
+print("\nBuilding Raw Behavioral Feature Matrix")
 
 rows = []
 
@@ -125,9 +113,7 @@ for node in nodes:
 
     total = activity_count[node]
 
-    # ------------------------------------------
     # Action Ratios
-    # ------------------------------------------
 
     if total > 0:
 
@@ -141,15 +127,13 @@ for node in nodes:
         mt_ratio = 0.0
         re_ratio = 0.0
 
-    # ------------------------------------------
     # Activity Span
-    # ------------------------------------------
 
     span = (
         last_time.get(node, 0)
         - first_time.get(node, 0)
     )
-    
+
     is_active = int(total > 0)
 
     rows.append([
@@ -175,9 +159,7 @@ behavior = pd.DataFrame(
     ]
 )
 
-# ==================================================
 # Raw Statistics
-# ==================================================
 
 print("\nRaw Behavioral Statistics:")
 
@@ -194,9 +176,7 @@ print(
     ].describe()
 )
 
-# ==================================================
 # Save RAW Features
-# ==================================================
 
 behavior.to_csv(
     OUTPUT_PATH,
@@ -211,5 +191,3 @@ print(behavior.shape)
 
 print("\nFeature Columns:")
 print(behavior.columns.tolist())
-
-print("\nStep 4 completed successfully. Unnormalized features ")

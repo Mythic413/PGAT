@@ -2,16 +2,10 @@ from pathlib import Path
 import pandas as pd
 import networkx as nx
 
-# ============================================================
-# PROJECT_HAIL – Try2
-# Step 5: Weighted Cascade Edge Probabilities
+# Weighted Cascade Edge Probabilities
 
-print("PROJECT_HAIL – Try2")
-print("Step 5: Weighted Cascade Edge Probabilities")
-
-# ------------------------------------------------------------
+print("Weighted Cascade Edge Probabilities")
 # Paths
-# ------------------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -20,9 +14,7 @@ DATA_DIR = PROJECT_ROOT / "data"
 GRAPH_PATH = DATA_DIR / "higgs_5000.edgelist"
 OUTPUT_PATH = DATA_DIR / "edge_probabilities.csv"
 
-# ------------------------------------------------------------
 # Load graph
-# ------------------------------------------------------------
 
 print("\nLoading Higgs-5000 graph...")
 
@@ -35,19 +27,15 @@ G = nx.read_edgelist(
 print(f"Nodes : {G.number_of_nodes():,}")
 print(f"Edges : {G.number_of_edges():,}")
 
-# ------------------------------------------------------------
 # Compute in-degrees
-# ------------------------------------------------------------
 
 print("\nComputing destination in-degrees...")
 
 in_degree = dict(G.in_degree())
 
-# ------------------------------------------------------------
 # Assign Weighted Cascade probabilities
-# ------------------------------------------------------------
 
-print("\nAssigning Weighted Cascade probabilities...")
+print("\nAssigning Weighted Cascade probabilities.")
 
 rows = []
 
@@ -68,9 +56,7 @@ edge_df = pd.DataFrame(
     ]
 )
 
-# ------------------------------------------------------------
 # Statistics
-# ------------------------------------------------------------
 
 print("\nProbability Statistics:")
 print(edge_df["probability"].describe())
@@ -79,9 +65,7 @@ print("\nProbability Range:")
 print(f"Minimum : {edge_df['probability'].min():.6f}")
 print(f"Maximum : {edge_df['probability'].max():.6f}")
 
-# ------------------------------------------------------------
 # Save
-# ------------------------------------------------------------
 
 OUTPUT_PATH.parent.mkdir(
     parents=True,
@@ -99,5 +83,4 @@ print(OUTPUT_PATH)
 print("\nOutput Shape:")
 print(edge_df.shape)
 
-print("\nStep 5 Complete.")
-print("Weighted Cascade edge probabilities finalized.")
+print("Weighted Cascade edge probabilities")

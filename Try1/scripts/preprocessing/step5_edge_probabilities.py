@@ -21,9 +21,7 @@ behav = pd.read_csv("data/behavioral_features.csv")
 struct = struct.set_index("node")
 behav = behav.set_index("node")
 
-# ---------------------------------------------------
 # Build retweet edge set
-# ---------------------------------------------------
 
 print("\nScanning retweet network...")
 
@@ -48,9 +46,7 @@ with gzip.open("data/higgs-retweet_network.edgelist.gz", "rt") as f:
 
 print(f"Matched retweet events: {matched_events:,}")
 
-# ---------------------------------------------------
 # Assign probabilities
-# ---------------------------------------------------
 
 print("\nAssigning probabilities...")
 

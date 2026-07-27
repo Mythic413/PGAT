@@ -1,8 +1,4 @@
-# ============================================================
-# train_pgat_im.py
 # Try2 Multitask PGAT Ablation
-#
-# Chunk 1:
 # Imports
 # Reproducibility
 # Configuration
@@ -11,7 +7,6 @@
 # Label Statistics
 # Metrics Utilities
 # Elite Diagnostics
-# ============================================================
 
 import os
 import copy
@@ -27,10 +22,7 @@ import torch.nn.functional as F
 
 warnings.filterwarnings("ignore")
 
-
-# ============================================================
 # Metrics Imports
-# ============================================================
 
 from scipy.stats import (
     spearmanr,
@@ -44,10 +36,7 @@ from sklearn.metrics import (
     ndcg_score,
 )
 
-
-# ============================================================
 # Reproducibility
-# ============================================================
 
 SEED = 42
 
@@ -66,10 +55,7 @@ if torch.cuda.is_available():
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
 
-
-# ============================================================
 # Configuration
-# ============================================================
 
 DATA_PATH = "Try2/data/higgs_pyg.pt"
 
@@ -98,17 +84,13 @@ LT_PREDICTIONS_PATH = (
     "pgat_im_lt_predictions.csv"
 )
 
-
 DEVICE = torch.device(
     "cuda"
     if torch.cuda.is_available()
     else "cpu"
 )
 
-
-# ============================================================
 # Frozen Vanilla Hyperparameters
-# ============================================================
 
 HIDDEN_DIM = 32
 
@@ -120,11 +102,9 @@ EMBED_DIM = 32
 
 DROPOUT = 0.1
 
-
 LR = 1e-3
 
 WEIGHT_DECAY = 1e-4
-
 
 EPOCHS = 500
 
@@ -132,10 +112,7 @@ PATIENCE = 100
 
 GRAD_CLIP = 1.0
 
-
-# ============================================================
 # Create Output Directories
-# ============================================================
 
 os.makedirs(
     os.path.dirname(CHECKPOINT_PATH),
@@ -162,10 +139,7 @@ os.makedirs(
     exist_ok=True,
 )
 
-
-# ============================================================
 # Dataset Loading
-# ============================================================
 
 print("=" * 60)
 print("PGAT-IM Multitask Ablation")
@@ -181,10 +155,7 @@ data = torch.load(
 
 print(data)
 
-
-# ============================================================
 # Dataset Summary
-# ============================================================
 
 print("\nDataset Summary")
 print("-" * 40)
@@ -209,10 +180,7 @@ print(
     f"{data.edge_attr.shape[1]}"
 )
 
-
-# ============================================================
 # Frozen Split Verification
-# ============================================================
 
 train_count = int(
     data.train_mask.sum().item()
@@ -241,7 +209,6 @@ print(
     f"Test Nodes  : {test_count}"
 )
 
-
 assert train_count == 700, (
     f"Expected 700 train nodes, "
     f"found {train_count}"
@@ -259,10 +226,7 @@ assert test_count == 152, (
 
 print("\n✓ Frozen splits verified.")
 
-
-# ============================================================
 # Feature Verification
-# ============================================================
 
 print("\nFeature Verification")
 print("-" * 40)
@@ -281,10 +245,7 @@ print(
     "✓ Frozen feature matrix verified."
 )
 
-
-# ============================================================
 # IC Label Statistics
-# ============================================================
 
 print("\nIC Label Statistics")
 print("-" * 40)
@@ -316,10 +277,7 @@ print(
     f"{data.y_ic[ic_valid].max().item():.4f}"
 )
 
-
-# ============================================================
 # LT Label Statistics
-# ============================================================
 
 print("\nLT Label Statistics")
 print("-" * 40)
@@ -351,10 +309,7 @@ print(
     f"{data.y_lt[lt_valid].max().item():.4f}"
 )
 
-
-# ============================================================
 # Metric Utilities
-# ============================================================
 
 def precision_at_k(
     y_true,
@@ -379,7 +334,6 @@ def precision_at_k(
         / k
     )
 
-
 def recall_at_k(
     y_true,
     y_pred,
@@ -403,7 +357,6 @@ def recall_at_k(
         / len(true_topk)
     )
 
-
 def ndcg_at_k(
     y_true,
     y_pred,
@@ -415,7 +368,6 @@ def ndcg_at_k(
         y_pred.reshape(1, -1),
         k=k,
     )
-
 
 def topk_overlap(
     y_true,
@@ -437,10 +389,7 @@ def topk_overlap(
         )
     )
 
-
-# ============================================================
 # Publication Metrics
-# ============================================================
 
 def compute_metrics(
     y_true,
@@ -551,10 +500,7 @@ def compute_metrics(
             ),
     }
 
-
-# ============================================================
 # Elite Diagnostics
-# ============================================================
 
 def elite_diagnostics(
     y_true,
@@ -642,10 +588,7 @@ def elite_diagnostics(
 
     return diagnostics
 
-
-# ============================================================
 # Move Dataset to Device
-# ============================================================
 
 data = data.to(DEVICE)
 
@@ -656,17 +599,10 @@ print(
 print("\nDataset Ready.")
 print("=" * 60)
 
-# ============================================================
-# Chunk 2: PGAT-IM Architecture
-# ============================================================
-
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-
-# ============================================================
 # Scatter Utilities
-# ============================================================
 
 def scatter_softmax_temp(
     logits,
@@ -674,12 +610,7 @@ def scatter_softmax_temp(
     N,
     degree,
 ):
-    """
-    Degree-temperature scaled softmax.
-
-    Preserved PGAT innovation:
-        tau = sqrt(degree)
-    """
+    """Degree-temperature scaled softmax."""
 
     H = logits.size(1)
 
@@ -736,15 +667,12 @@ def scatter_softmax_temp(
         sumx[dst_idx] + 1e-10
     )
 
-
 def scatter_add_heads(
     src,
     dst_idx,
     N,
 ):
-    """
-    Multi-head aggregation.
-    """
+    """Multi-head aggregation."""
 
     out = torch.zeros(
         N,
@@ -761,24 +689,10 @@ def scatter_add_heads(
 
     return out
 
-
-# ============================================================
 # PGAT Convolution
-# ============================================================
 
 class PGATConv(nn.Module):
-    """
-    Final PGAT convolution.
-
-    Preserved innovations:
-        ✓ Separate W_src/W_dst
-        ✓ Separate a_src/a_dst
-        ✓ Probability gate
-        ✓ Degree temperature
-        ✓ Double probability scaling
-        ✓ Residual update
-        ✓ LayerNorm
-    """
+    """PGAT convolution layer."""
 
     def __init__(
         self,
@@ -794,9 +708,7 @@ class PGATConv(nn.Module):
 
         D = heads * hidden_channels
 
-        # ----------------------------------------
         # Source / Destination projections
-        # ----------------------------------------
 
         self.W_src = nn.Linear(
             in_channels,
@@ -810,9 +722,7 @@ class PGATConv(nn.Module):
             bias=False,
         )
 
-        # ----------------------------------------
         # Attention vectors
-        # ----------------------------------------
 
         self.a_src = nn.Parameter(
             torch.empty(
@@ -828,9 +738,7 @@ class PGATConv(nn.Module):
             )
         )
 
-        # ----------------------------------------
         # Probability gate
-        # ----------------------------------------
 
         self.w_g = nn.Parameter(
             torch.tensor(1.0)
@@ -840,9 +748,7 @@ class PGATConv(nn.Module):
             torch.tensor(0.0)
         )
 
-        # ----------------------------------------
         # Output projection
-        # ----------------------------------------
 
         self.W_out = nn.Linear(
             D,
@@ -899,9 +805,7 @@ class PGATConv(nn.Module):
 
         p = edge_attr.squeeze(-1)
 
-        # ----------------------------------------
         # Node projections
-        # ----------------------------------------
 
         h_src = self.W_src(x).view(
             N,
@@ -915,9 +819,7 @@ class PGATConv(nn.Module):
             self.out_channels,
         )
 
-        # ----------------------------------------
         # Attention
-        # ----------------------------------------
 
         a_src = self.a_src.unsqueeze(0)
 
@@ -935,9 +837,7 @@ class PGATConv(nn.Module):
             ).sum(-1)
         )
 
-        # ----------------------------------------
         # Probability gate
-        # ----------------------------------------
 
         gate = (
             1.0
@@ -955,9 +855,7 @@ class PGATConv(nn.Module):
             negative_slope=0.2,
         )
 
-        # ----------------------------------------
         # Degree temperature
-        # ----------------------------------------
 
         alpha = scatter_softmax_temp(
             scores,
@@ -968,9 +866,7 @@ class PGATConv(nn.Module):
 
         alpha = self.drop(alpha)
 
-        # ----------------------------------------
         # Normalize probabilities
-        # ----------------------------------------
 
         p_sum = torch.zeros(
             N,
@@ -988,9 +884,7 @@ class PGATConv(nn.Module):
             + 1e-10
         )
 
-        # ----------------------------------------
         # Double probability propagation
-        # ----------------------------------------
 
         messages = (
             h_src[src_idx]
@@ -1010,9 +904,7 @@ class PGATConv(nn.Module):
 
         z = z.view(N, -1)
 
-        # ----------------------------------------
         # Residual update
-        # ----------------------------------------
 
         return self.norm(
             x
@@ -1022,24 +914,10 @@ class PGATConv(nn.Module):
             )
         )
 
-
-# ============================================================
-# PGAT-IM
-# ============================================================
+# Pgat-Im
 
 class PGAT_IM(nn.Module):
-    """
-    Multitask PGAT.
-
-    Shared encoder
-    ↓
-    Shared embedding
-    ├── IC head
-    └── LT head
-
-    Fairness:
-        Same optimization as Vanilla.
-    """
+    """Multitask PGAT."""
 
     def __init__(
         self,
@@ -1054,9 +932,7 @@ class PGAT_IM(nn.Module):
 
         D = heads * hidden_channels
 
-        # ----------------------------------------
         # Input projection
-        # ----------------------------------------
 
         self.input_proj = nn.Sequential(
 
@@ -1074,9 +950,7 @@ class PGAT_IM(nn.Module):
             ),
         )
 
-        # ----------------------------------------
         # Shared PGAT encoder
-        # ----------------------------------------
 
         self.convs = nn.ModuleList([
             PGATConv(
@@ -1088,9 +962,7 @@ class PGAT_IM(nn.Module):
             for _ in range(num_layers)
         ])
 
-        # ----------------------------------------
         # Shared embedding
-        # ----------------------------------------
 
         self.output_proj = nn.Sequential(
 
@@ -1115,9 +987,7 @@ class PGAT_IM(nn.Module):
             ),
         )
 
-        # ----------------------------------------
         # IC Head
-        # ----------------------------------------
 
         self.ic_head = nn.Sequential(
 
@@ -1134,9 +1004,7 @@ class PGAT_IM(nn.Module):
             ),
         )
 
-        # ----------------------------------------
         # LT Head
-        # ----------------------------------------
 
         self.lt_head = nn.Sequential(
 
@@ -1184,9 +1052,7 @@ class PGAT_IM(nn.Module):
 
         N = x.size(0)
 
-        # ----------------------------------------
         # Degree computation
-        # ----------------------------------------
 
         degree = torch.zeros(
             N,
@@ -1206,15 +1072,11 @@ class PGAT_IM(nn.Module):
 
         degree.clamp_(min=1)
 
-        # ----------------------------------------
         # Input projection
-        # ----------------------------------------
 
         h = self.input_proj(x)
 
-        # ----------------------------------------
         # Shared encoder
-        # ----------------------------------------
 
         for conv in self.convs:
 
@@ -1225,9 +1087,7 @@ class PGAT_IM(nn.Module):
                 degree,
             )
 
-        # ----------------------------------------
         # Shared embedding
-        # ----------------------------------------
 
         embed = self.output_proj(
             torch.cat(
@@ -1236,9 +1096,7 @@ class PGAT_IM(nn.Module):
             )
         )
 
-        # ----------------------------------------
         # Task heads
-        # ----------------------------------------
 
         ic_pred = self.ic_head(
             embed
@@ -1253,10 +1111,7 @@ class PGAT_IM(nn.Module):
             lt_pred,
         )
 
-
-# ============================================================
 # Model Initialization
-# ============================================================
 
 model = PGAT_IM(
     in_channels=9,
@@ -1267,12 +1122,10 @@ model = PGAT_IM(
     dropout=DROPOUT,
 ).to(DEVICE)
 
-
 print("\nModel Architecture")
 print("-" * 40)
 
 print(model)
-
 
 total_params = sum(
     p.numel()
@@ -1295,10 +1148,7 @@ print(
     f"{trainable_params:,}"
 )
 
-
-# ============================================================
 # Frozen Vanilla Optimization
-# ============================================================
 
 criterion_ic = nn.MSELoss()
 
@@ -1318,10 +1168,7 @@ scheduler = ReduceLROnPlateau(
     min_lr=1e-5,
 )
 
-
-# ============================================================
 # Early Stopping State
-# ============================================================
 
 best_val_score = float("inf")
 
@@ -1337,42 +1184,25 @@ history = {
     "learning_rate": [],
 }
 
-
 print("\nPGAT-IM Setup Complete.")
 print("=" * 60)
 
-# ============================================================
-# Chunk 3: Joint Training, Validation,
-#           Scheduler, Early Stopping
-# ============================================================
+# Scheduler, Early Stopping
 
 print("\n" + "=" * 60)
 print("Starting PGAT-IM Multitask Training")
 print("=" * 60)
 
-
-# ============================================================
 # Training Function
-# ============================================================
 
 def train_one_epoch():
-    """
-    Joint IC + LT training.
-
-    Returns
-    -------
-    total_loss
-    ic_loss
-    lt_loss
-    """
+    """Train one epoch."""
 
     model.train()
 
     optimizer.zero_grad()
 
-    # --------------------------------------------------------
     # Forward
-    # --------------------------------------------------------
 
     ic_pred, lt_pred = model(
         data.x,
@@ -1380,9 +1210,7 @@ def train_one_epoch():
         data.edge_attr,
     )
 
-    # --------------------------------------------------------
     # IC Loss
-    # --------------------------------------------------------
 
     train_ic_pred = ic_pred[
         data.train_mask
@@ -1397,9 +1225,7 @@ def train_one_epoch():
         train_ic_true,
     )
 
-    # --------------------------------------------------------
     # LT Loss
-    # --------------------------------------------------------
 
     train_lt_pred = lt_pred[
         data.train_mask
@@ -1414,12 +1240,9 @@ def train_one_epoch():
         train_lt_true,
     )
 
-    # --------------------------------------------------------
     # Joint Loss
-    #
     # No lambda:
     # Equal task importance
-    # --------------------------------------------------------
 
     total_loss = (
         loss_ic
@@ -1427,15 +1250,11 @@ def train_one_epoch():
         loss_lt
     )
 
-    # --------------------------------------------------------
     # Backpropagation
-    # --------------------------------------------------------
 
     total_loss.backward()
 
-    # --------------------------------------------------------
     # Frozen Gradient Clipping
-    # --------------------------------------------------------
 
     torch.nn.utils.clip_grad_norm_(
         model.parameters(),
@@ -1450,20 +1269,11 @@ def train_one_epoch():
         loss_lt.item(),
     )
 
-
-# ============================================================
 # Validation Function
-# ============================================================
 
 @torch.no_grad()
 def validate():
-    """
-    Returns
-    -------
-    val_ic_mae
-    val_lt_mae
-    combined_score
-    """
+    """Compute validation metrics."""
 
     model.eval()
 
@@ -1473,9 +1283,7 @@ def validate():
         data.edge_attr,
     )
 
-    # --------------------------------------------------------
     # IC Validation
-    # --------------------------------------------------------
 
     val_ic_pred = ic_pred[
         data.val_mask
@@ -1490,9 +1298,7 @@ def validate():
         val_ic_pred.cpu().numpy(),
     )
 
-    # --------------------------------------------------------
     # LT Validation
-    # --------------------------------------------------------
 
     val_lt_pred = lt_pred[
         data.val_mask
@@ -1507,14 +1313,11 @@ def validate():
         val_lt_pred.cpu().numpy(),
     )
 
-    # --------------------------------------------------------
     # Combined Validation Score
-    #
     # Used for:
     # Scheduler
     # Checkpoint
     # Early stopping
-    # --------------------------------------------------------
 
     combined_score = (
         val_ic_mae
@@ -1528,10 +1331,7 @@ def validate():
         combined_score,
     )
 
-
-# ============================================================
 # Main Training Loop
-# ============================================================
 
 for epoch in range(1, EPOCHS + 1):
 
@@ -1547,9 +1347,7 @@ for epoch in range(1, EPOCHS + 1):
         val_score,
     ) = validate()
 
-    # --------------------------------------------------------
     # Scheduler Update
-    # --------------------------------------------------------
 
     scheduler.step(
         val_score
@@ -1557,9 +1355,7 @@ for epoch in range(1, EPOCHS + 1):
 
     current_lr = optimizer.param_groups[0]["lr"]
 
-    # --------------------------------------------------------
     # Save History
-    # --------------------------------------------------------
 
     history["train_loss"].append(
         train_total
@@ -1581,9 +1377,7 @@ for epoch in range(1, EPOCHS + 1):
         current_lr
     )
 
-    # --------------------------------------------------------
     # Best Checkpoint
-    # --------------------------------------------------------
 
     if val_score < best_val_score:
 
@@ -1602,9 +1396,7 @@ for epoch in range(1, EPOCHS + 1):
 
         patience_counter += 1
 
-    # --------------------------------------------------------
     # Logging
-    # --------------------------------------------------------
 
     if (
         epoch == 1
@@ -1624,9 +1416,7 @@ for epoch in range(1, EPOCHS + 1):
             f"LR: {current_lr:.6f}"
         )
 
-    # --------------------------------------------------------
     # Early Stopping
-    # --------------------------------------------------------
 
     if patience_counter >= PATIENCE:
 
@@ -1639,10 +1429,7 @@ for epoch in range(1, EPOCHS + 1):
 
         break
 
-
-# ============================================================
 # Training Complete
-# ============================================================
 
 print("\n" + "=" * 60)
 print("Training Complete")
@@ -1669,10 +1456,7 @@ print(
     f"{CHECKPOINT_PATH}"
 )
 
-
-# ============================================================
 # Restore Best Checkpoint
-# ============================================================
 
 print(
     "\nRestoring Best "
@@ -1693,10 +1477,7 @@ print("✓ Best checkpoint restored.")
 
 print("=" * 60)
 
-
-# ============================================================
 # Leakage Audit
-# ============================================================
 
 print("\nLeakage Audit")
 print("-" * 40)
@@ -1735,19 +1516,13 @@ print(
 
 print("=" * 60)
 
-# ============================================================
-# Chunk 4: Final Evaluation, Export,
-#           Results Saving, PGAT vs PGAT-IM
-# ============================================================
+# Results Saving, PGAT vs PGAT-IM
 
 print("\n" + "=" * 60)
 print("Final Evaluation")
 print("=" * 60)
 
-
-# ============================================================
 # Generic Evaluation Function
-# ============================================================
 
 @torch.no_grad()
 def evaluate_task(
@@ -1755,14 +1530,7 @@ def evaluate_task(
     y_pred_full,
     task_name,
 ):
-    """
-    Returns:
-        metrics
-        elite_metrics
-        y_true
-        y_pred
-        node_ids
-    """
+    """Returns:."""
 
     y_true = (
         y_true_full[data.test_mask]
@@ -1867,10 +1635,7 @@ def evaluate_task(
         node_ids,
     )
 
-
-# ============================================================
 # Forward Pass
-# ============================================================
 
 with torch.no_grad():
 
@@ -1880,10 +1645,7 @@ with torch.no_grad():
         data.edge_attr,
     )
 
-
-# ============================================================
 # IC Evaluation
-# ============================================================
 
 (
     ic_metrics,
@@ -1897,10 +1659,7 @@ with torch.no_grad():
     "IC",
 )
 
-
-# ============================================================
 # LT Evaluation
-# ============================================================
 
 (
     lt_metrics,
@@ -1914,10 +1673,7 @@ with torch.no_grad():
     "LT",
 )
 
-
-# ============================================================
 # Prediction Export Function
-# ============================================================
 
 def save_predictions(
     y_true,
@@ -1954,10 +1710,7 @@ def save_predictions(
         index=False,
     )
 
-
-# ============================================================
 # Save IC Predictions
-# ============================================================
 
 save_predictions(
     ic_true,
@@ -1971,10 +1724,7 @@ print(
     f"{IC_PREDICTIONS_PATH}"
 )
 
-
-# ============================================================
 # Save LT Predictions
-# ============================================================
 
 save_predictions(
     lt_true,
@@ -1988,10 +1738,7 @@ print(
     f"{LT_PREDICTIONS_PATH}"
 )
 
-
-# ============================================================
 # Save Result Files
-# ============================================================
 
 def save_results(
     metrics,
@@ -2049,7 +1796,6 @@ def save_results(
                 f"{v:.6f}\n"
             )
 
-
 save_results(
     ic_metrics,
     ic_elite,
@@ -2072,10 +1818,7 @@ print(
     f"{LT_RESULTS_PATH}"
 )
 
-
-# ============================================================
 # PGAT vs PGAT-IM Summary
-# ============================================================
 
 print("\n" + "=" * 60)
 print("PGAT vs PGAT-IM ABLATION")
@@ -2107,7 +1850,6 @@ print(
     f"PGAT-IM   Spearman : {ic_metrics['Spearman']:.4f}"
 )
 
-
 print("\nLT")
 
 print(
@@ -2133,7 +1875,6 @@ print(
 print(
     f"PGAT-IM   Spearman : {lt_metrics['Spearman']:.4f}"
 )
-
 
 print("\n" + "=" * 60)
 print("PGAT-IM Experiment Finished Successfully")

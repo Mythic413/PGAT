@@ -31,7 +31,7 @@ edge_prob = {
     for _, row in edge_df.iterrows()
 }
 
-print("Building degree quartiles...")
+print("Building degree quartiles.")
 
 degree = dict(G.degree())
 

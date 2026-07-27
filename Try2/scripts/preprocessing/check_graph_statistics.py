@@ -7,9 +7,7 @@ BASE_DIR = Path(__file__).resolve().parents[3]
 ORIGINAL_PATH = BASE_DIR / "data" / "higgs-social_network.edgelist.gz"
 SAMPLED_PATH = BASE_DIR / "Try2" / "data" / "higgs_5000.edgelist"
 
-print("=" * 60)
 print("ORIGINAL HIGGS")
-print("=" * 60)
 
 G = nx.DiGraph()
 
@@ -31,10 +29,6 @@ print(f"Average Degree: {avg_degree:.2f}")
 print(f"Density: {nx.density(G):.8f}")
 
 print("\n")
-
-print("=" * 60)
-print("TRY2 SAMPLE")
-print("=" * 60)
 
 H = nx.read_edgelist(
     SAMPLED_PATH,

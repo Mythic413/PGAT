@@ -6,10 +6,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-# ============================================================
-# PROJECT_HAIL – Try2
-# Step 6a: LT Label Generation
-# ============================================================
+# LT Label Generation
 
 MC_RUNS = 200
 SEED = 42
@@ -17,10 +14,7 @@ SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 
-
-# ------------------------------------------------------------
 # Paths
-# ------------------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -31,9 +25,7 @@ EDGE_PATH = DATA_DIR / "edge_probabilities.csv"
 NODES_PATH = DATA_DIR / "labeled_nodes.csv"
 OUTPUT_PATH = DATA_DIR / "lt_labels.csv"
 
-# ------------------------------------------------------------
 # Load graph
-# ------------------------------------------------------------
 
 print("\nLoading graph...")
 
@@ -46,9 +38,7 @@ G = nx.read_edgelist(
 print(f"Nodes: {G.number_of_nodes():,}")
 print(f"Edges: {G.number_of_edges():,}")
 
-# ------------------------------------------------------------
 # Load WC weights
-# ------------------------------------------------------------
 
 print("\nLoading edge probabilities...")
 
@@ -59,9 +49,7 @@ for row in edge_df.itertuples(index=False):
 
 print(f"Loaded weights: {len(edge_df):,}")
 
-# ------------------------------------------------------------
 # Load shared labeled nodes
-# ------------------------------------------------------------
 
 print("\nLoading labeled nodes...")
 
@@ -69,9 +57,7 @@ selected = pd.read_csv(NODES_PATH)["node"].tolist()
 
 print(f"Labeled nodes: {len(selected)}")
 
-# ------------------------------------------------------------
 # LT Simulation (Frontier Accumulator)
-# ------------------------------------------------------------
 
 def run_lt(seed_node):
 
@@ -109,11 +95,9 @@ def run_lt(seed_node):
 
     return len(active)
 
-# ------------------------------------------------------------
 # Generate LT labels
-# ------------------------------------------------------------
 
-print("\nGenerating LT labels...")
+print("\nGenerating LT labels")
 
 rows = []
 
@@ -148,9 +132,7 @@ labels = pd.DataFrame(
     ]
 )
 
-# ------------------------------------------------------------
 # Statistics
-# ------------------------------------------------------------
 
 print("\nLT Mean Statistics:")
 print(labels["lt_mean"].describe())
@@ -158,9 +140,7 @@ print(labels["lt_mean"].describe())
 print("\nLT Std Statistics:")
 print(labels["lt_std"].describe())
 
-# ------------------------------------------------------------
 # Save
-# ------------------------------------------------------------
 
 labels.to_csv(
     OUTPUT_PATH,
@@ -173,5 +153,4 @@ print(OUTPUT_PATH)
 print("\nOutput Shape:")
 print(labels.shape)
 
-print("\nStep 6a Complete.")
 print("LT labels finalized.")

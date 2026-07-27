@@ -1,7 +1,5 @@
-# ============================================================
-# train_gin_ic.py
-# Chunk 1: Imports, Configuration, Dataset Loading
-# ============================================================
+# Training
+# Configuration
 
 import os
 import copy
@@ -26,10 +24,7 @@ from Try1.scripts.training.utils_metrics import (
 
 warnings.filterwarnings("ignore")
 
-
-# ============================================================
 # Reproducibility
-# ============================================================
 
 SEED = 42
 
@@ -44,11 +39,6 @@ if torch.cuda.is_available():
 
 torch.backends.cudnn.deterministic = True
 torch.backends.cudnn.benchmark = False
-
-
-# ============================================================
-# Configuration
-# ============================================================
 
 DATA_PATH = "data/higgs_pyg.pt"
 
@@ -76,20 +66,14 @@ DROPOUT = 0.1
 LR = 1e-3
 WEIGHT_DECAY = 1e-4
 
-# Match actual GCN setup
 EPOCHS = 1000
 PATIENCE = 100
 
 HUBER_DELTA = 0.1
 
+# Dataset
 
-# ============================================================
-# Dataset Loading
-# ============================================================
-
-print("=" * 60)
-print("Loading PyG Dataset...")
-print("=" * 60)
+print("Loading PyG Dataset")
 
 data = torch.load(
     DATA_PATH,
@@ -99,8 +83,6 @@ data = torch.load(
 print(data)
 
 print("\nDataset Summary")
-print("-" * 40)
-
 print(
     "Nodes       :",
     data.num_nodes
@@ -131,10 +113,7 @@ print(
     data.test_mask.sum().item()
 )
 
-
 print("\nIC Label Statistics")
-print("-" * 40)
-
 num_nan = torch.isnan(
     data.y_ic
 ).sum().item()
@@ -149,53 +128,19 @@ print(
     data.num_nodes - num_nan
 )
 
-
-# ============================================================
-# Move Dataset to Device
-# ============================================================
-
 data = data.to(DEVICE)
 
 print("\nUsing Device :", DEVICE)
 
-print("=" * 60)
 print("Dataset Ready")
-print("=" * 60)
 
-# ============================================================
-# Chunk 2: GIN Model, Loss, Optimizer Helpers
-# ============================================================
+# Model
 
 import torch.nn.functional as F
 from torch.nn import Sequential, Linear, ReLU
 
-
-# ============================================================
-# GIN Model Definition
-# ============================================================
-
 class GIN(nn.Module):
-    """
-    2-layer GIN for IC Influence Estimation.
-
-    Architecture:
-
-        Input
-          ↓
-        GINConv
-        (MLP: Linear→ReLU→Linear)
-          ↓
-        ReLU
-          ↓
-        Dropout
-          ↓
-        GINConv
-        (MLP: Linear→ReLU→Linear)
-          ↓
-        Output
-
-    Standard GIN baseline.
-    """
+    """2-layer GIN model."""
 
     def __init__(
         self,
@@ -204,10 +149,6 @@ class GIN(nn.Module):
         dropout=0.1,
     ):
         super().__init__()
-
-        # -------------------------
-        # First GIN MLP
-        # -------------------------
 
         mlp1 = Sequential(
             Linear(
@@ -224,10 +165,6 @@ class GIN(nn.Module):
         self.conv1 = GINConv(
             mlp1
         )
-
-        # -------------------------
-        # Second GIN MLP
-        # -------------------------
 
         mlp2 = Sequential(
             Linear(
@@ -252,13 +189,7 @@ class GIN(nn.Module):
         x,
         edge_index,
     ):
-        """
-        Returns
-        -------
-        Tensor of shape [num_nodes]
-        """
 
-        # First GIN layer
         x = self.conv1(
             x,
             edge_index
@@ -272,7 +203,6 @@ class GIN(nn.Module):
             training=self.training,
         )
 
-        # Output GIN layer
         x = self.conv2(
             x,
             edge_index
@@ -280,23 +210,15 @@ class GIN(nn.Module):
 
         return x.squeeze(-1)
 
-
-# ============================================================
-# Model Initialization
-# ============================================================
-
 model = GIN(
     in_channels=data.x.shape[1],
     hidden_channels=HIDDEN_DIM,
     dropout=DROPOUT,
 ).to(DEVICE)
 
-
 print("\nModel Architecture")
-print("-" * 40)
 
 print(model)
-
 
 total_params = sum(
     p.numel()
@@ -319,30 +241,15 @@ print(
     f"{trainable_params:,}"
 )
 
-
-# ============================================================
-# Loss Function
-# ============================================================
-
 loss_fn = nn.HuberLoss(
     delta=HUBER_DELTA
 )
-
-
-# ============================================================
-# Optimizer
-# ============================================================
 
 optimizer = torch.optim.AdamW(
     model.parameters(),
     lr=LR,
     weight_decay=WEIGHT_DECAY,
 )
-
-
-# ============================================================
-# Early Stopping Variables
-# ============================================================
 
 best_val_mae = float("inf")
 
@@ -352,20 +259,12 @@ best_state_dict = None
 
 patience_counter = 0
 
-
 history = {
     "train_loss": [],
     "val_mae": [],
 }
 
-
-# ============================================================
-# Training Configuration Summary
-# ============================================================
-
 print("\nTraining Configuration")
-print("-" * 40)
-
 print(
     f"Loss            : "
     f"HuberLoss(delta={HUBER_DELTA})"
@@ -399,44 +298,23 @@ print(
     f"{HIDDEN_DIM}"
 )
 
-print("=" * 60)
 print("Model Setup Complete")
-print("=" * 60)
 
-# ============================================================
-# Chunk 3: Training Loop with Early Stopping
-# ============================================================
+print("Starting GIN Training on IC Labels")
 
-print("\n" + "=" * 60)
-print("Starting GIN Training on IC Labels...")
-print("=" * 60)
-
-
-# ============================================================
-# Training Function
-# ============================================================
 
 def train_one_epoch():
-    """
-    Perform one full-batch training epoch.
-
-    Returns
-    -------
-    float
-        Training loss
-    """
+    """Train one epoch."""
 
     model.train()
 
     optimizer.zero_grad()
 
-    # Forward pass on all 5000 nodes
     predictions = model(
         data.x,
         data.edge_index
     )
 
-    # Loss only on labeled training nodes
     loss = masked_huber_loss(
         predictions=predictions,
         targets=data.y_ic,
@@ -450,16 +328,11 @@ def train_one_epoch():
 
     return loss.item()
 
-
-# ============================================================
-# Validation Function
-# ============================================================
+# Validation
 
 @torch.no_grad()
 def validate():
-    """
-    Compute validation MAE.
-    """
+    """Compute validation metrics."""
 
     model.eval()
 
@@ -481,22 +354,9 @@ def validate():
 
     return val_mae
 
-
-# ============================================================
-# Main Training Loop
-# ============================================================
-
 for epoch in range(1, EPOCHS + 1):
 
-    # --------------------------------------------------------
-    # Train
-    # --------------------------------------------------------
-
     train_loss = train_one_epoch()
-
-    # --------------------------------------------------------
-    # Validate
-    # --------------------------------------------------------
 
     val_mae = validate()
 
@@ -507,10 +367,6 @@ for epoch in range(1, EPOCHS + 1):
     history["val_mae"].append(
         val_mae
     )
-
-    # --------------------------------------------------------
-    # Save Best Model
-    # --------------------------------------------------------
 
     if val_mae < best_val_mae:
 
@@ -532,10 +388,6 @@ for epoch in range(1, EPOCHS + 1):
     else:
         patience_counter += 1
 
-    # --------------------------------------------------------
-    # Logging
-    # --------------------------------------------------------
-
     if (
         epoch == 1
         or epoch % 10 == 0
@@ -549,10 +401,6 @@ for epoch in range(1, EPOCHS + 1):
             f"Best Val MAE: {best_val_mae:.4f}"
         )
 
-    # --------------------------------------------------------
-    # Early Stopping
-    # --------------------------------------------------------
-
     if patience_counter >= PATIENCE:
 
         print("\nEarly stopping triggered.")
@@ -564,10 +412,7 @@ for epoch in range(1, EPOCHS + 1):
 
         break
 
-
-print("\n" + "=" * 60)
 print("Training Complete")
-print("=" * 60)
 
 print(
     f"Best Epoch         : "
@@ -584,12 +429,7 @@ print(
     f" {CHECKPOINT_PATH}"
 )
 
-
-# ============================================================
-# Restore Best Checkpoint
-# ============================================================
-
-print("\nLoading best checkpoint...")
+print("\nLoading best checkpoint.")
 
 model.load_state_dict(
     torch.load(
@@ -603,26 +443,13 @@ model.eval()
 
 print("Best checkpoint restored.")
 
-print("=" * 60)
-
-# ============================================================
-# Chunk 4: Final Evaluation and Thesis Summary
-# ============================================================
-
-print("\n" + "=" * 60)
 print("Final Evaluation on Test Set")
-print("=" * 60)
 
-
-# ============================================================
-# Test Evaluation
-# ============================================================
+# Evaluation
 
 @torch.no_grad()
 def evaluate_test():
-    """
-    Evaluate the best checkpoint on test nodes.
-    """
+    """Evaluate model on test dataset."""
 
     model.eval()
 
@@ -648,20 +475,9 @@ def evaluate_test():
         y_pred,
     )
 
-
-# ============================================================
-# Run Evaluation
-# ============================================================
-
 test_metrics, y_true_test, y_pred_test = evaluate_test()
 
-
-# ============================================================
-# Print Test Metrics
-# ============================================================
-
 print("\nTest Metrics")
-print("-" * 40)
 
 print(
     f"Test MAE          : "
@@ -693,13 +509,7 @@ print(
     f"{test_metrics['Precision@10']:.4f}"
 )
 
-
-# ============================================================
-# Top-10 Influence Ranking Analysis
-# ============================================================
-
 print("\nTop-10 Ranking Analysis")
-print("-" * 40)
 
 true_top10_idx = (
     np.argsort(y_true_test)[-10:][::-1]
@@ -721,7 +531,6 @@ for rank, idx in enumerate(
         f"{y_true_test[idx]:8.4f}"
     )
 
-
 print("\nPredicted Top-10 IC Influence:")
 
 for rank, idx in enumerate(
@@ -734,25 +543,13 @@ for rank, idx in enumerate(
         f"{y_pred_test[idx]:8.4f}"
     )
 
-
-# ============================================================
-# Save Predictions
-# ============================================================
-
 save_predictions(
     PREDICTIONS_PATH,
     y_true_test,
     y_pred_test,
 )
 
-
-# ============================================================
-# Experiment Summary
-# ============================================================
-
-print("\n" + "=" * 60)
 print("GIN IC EXPERIMENT SUMMARY")
-print("=" * 60)
 
 print("Model                 : GIN")
 print("Task                  : IC Influence Estimation")
@@ -783,19 +580,13 @@ print(
     f"{best_epoch}"
 )
 
-
 print("\nValidation Performance")
-print("-" * 40)
-
 print(
     f"Best Validation MAE   : "
     f"{best_val_mae:.4f}"
 )
 
-
 print("\nTest Performance")
-print("-" * 40)
-
 print(
     f"MAE                   : "
     f"{test_metrics['MAE']:.4f}"
@@ -826,22 +617,13 @@ print(
     f"{test_metrics['Precision@10']:.4f}"
 )
 
-print("=" * 60)
-print("Experiment Finished Successfully")
-print("=" * 60)
-
-
-# ============================================================
-# Save Results to Text File
-# ============================================================
+print("Experiment Finished")
 
 with open(RESULTS_PATH, "w") as f:
 
     f.write(
         "GIN IC EXPERIMENT RESULTS\n"
     )
-
-    f.write("=" * 50 + "\n")
 
     f.write(
         f"Best Epoch: "
@@ -855,7 +637,6 @@ with open(RESULTS_PATH, "w") as f:
 
     f.write("Test Metrics\n")
 
-    f.write("-" * 20 + "\n")
 
     for metric, value in test_metrics.items():
 
@@ -863,7 +644,6 @@ with open(RESULTS_PATH, "w") as f:
             f"{metric}: "
             f"{value:.6f}\n"
         )
-
 
 print(
     f"\nResults saved to: "
@@ -874,8 +654,3 @@ print(
     f"Predictions saved to: "
     f"{PREDICTIONS_PATH}"
 )
-
-
-# ============================================================
-# End of Script
-# ============================================================

@@ -19,9 +19,7 @@ device = torch.device(
 
 print("Using:", device)
 
-# ====================================================
 # Paths
-# ====================================================
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -39,9 +37,7 @@ LT_PATH = DATA_DIR / "lt_labels.csv"
 OUTPUT_PATH = DATA_DIR / "higgs_pyg.pt"
 SPLIT_PATH = DATA_DIR / "splits.pt"
 
-# ====================================================
 # Load Graph
-# ====================================================
 
 print("\nLoading graph...")
 
@@ -61,9 +57,7 @@ node_to_idx = {
 print("Nodes:", len(nodes))
 print("Edges:", G.number_of_edges())
 
-# ====================================================
 # Load Features
-# ====================================================
 
 print("\nLoading features...")
 
@@ -73,9 +67,7 @@ behav = pd.read_csv(BEHAV_PATH)
 struct = struct.sort_values("node").reset_index(drop=True)
 behav = behav.sort_values("node").reset_index(drop=True)
 
-# ----------------------------------------------------
 # Alignment Checks
-# ----------------------------------------------------
 
 assert np.array_equal(
     struct["node"].values,
@@ -87,11 +79,9 @@ assert np.array_equal(
     np.array(nodes)
 ), "Feature nodes and graph nodes do not match."
 
-print("✓ Feature alignment checks passed.")
+print("Feature alignment checks passed.")
 
-# ----------------------------------------------------
 # Structural Features (Step 3 FINAL)
-# ----------------------------------------------------
 
 X_struct = struct[
     [
@@ -102,9 +92,7 @@ X_struct = struct[
     ]
 ].values
 
-# ----------------------------------------------------
 # Behavioral Features (Step 4 FINAL)
-# ----------------------------------------------------
 
 X_behav = behav[
     [
@@ -116,9 +104,7 @@ X_behav = behav[
     ]
 ].values
 
-# ----------------------------------------------------
 # Combine Features
-# ----------------------------------------------------
 
 X_raw = np.concatenate(
     [X_struct, X_behav],
@@ -148,17 +134,13 @@ for idx, name in enumerate(feature_names):
         f"std={X_raw[:, idx].std():12.4f}"
     )
 
-# ====================================================
 # Edge Index & Edge Attributes
-# ====================================================
 
 print("\nLoading edge probabilities...")
 
 edge_prob = pd.read_csv(EDGE_PATH)
 
-# ----------------------------------------------------
 # Build edge_index and edge_attr together
-# ----------------------------------------------------
 
 src = []
 dst = []
@@ -191,13 +173,11 @@ assert (
     edge_index.shape[1]
     ==
     edge_attr.shape[0]
-), "Mismatch between edge_index and edge_attr."
+), "Mismatch between edge_index and edge_attr"
 
-print("✓ Edge synchronization checks passed.")
+print("Edge synchronization checks passed.")
 
-# ====================================================
 # Labels
-# ====================================================
 
 print("\nLoading labels...")
 
@@ -207,9 +187,7 @@ lt = pd.read_csv(LT_PATH)
 print("IC labels :", len(ic))
 print("LT labels :", len(lt))
 
-# ----------------------------------------------------
 # Initialize labels
-# ----------------------------------------------------
 
 y_ic = torch.full(
     (len(nodes),),
@@ -223,9 +201,7 @@ y_lt = torch.full(
     dtype=torch.float
 )
 
-# ----------------------------------------------------
 # Populate IC labels
-# ----------------------------------------------------
 
 for row in ic.itertuples(index=False):
 
@@ -235,9 +211,7 @@ for row in ic.itertuples(index=False):
         node_to_idx[node]
     ] = row.ic_mean
 
-# ----------------------------------------------------
 # Populate LT labels
-# ----------------------------------------------------
 
 for row in lt.itertuples(index=False):
 
@@ -247,9 +221,7 @@ for row in lt.itertuples(index=False):
         node_to_idx[node]
     ] = row.lt_mean
 
-# ====================================================
 # Label Consistency Checks
-# ====================================================
 
 ic_mask = ~torch.isnan(y_ic)
 lt_mask = ~torch.isnan(y_lt)
@@ -270,11 +242,9 @@ assert len(labeled) == 1000, (
     f"found {len(labeled)}."
 )
 
-print("✓ IC/LT consistency checks passed.")
+print(" IC/LT consistency checks passed.")
 
-# ----------------------------------------------------
 # Label Statistics
-# ----------------------------------------------------
 
 print("\nIC Label Statistics:")
 
@@ -292,15 +262,11 @@ print(
     ).describe()
 )
 
-# ====================================================
 # Train / Validation / Test Splits
-# ====================================================
 
-print("\nBuilding degree-stratified splits...")
+print("\nBuilding degree-stratified splits")
 
-# ----------------------------------------------------
 # Degree quartiles on LABELED nodes only
-# ----------------------------------------------------
 
 labeled_nodes_original = [
     nodes[idx]
@@ -329,9 +295,7 @@ train_idx_list = []
 val_idx_list = []
 test_idx_list = []
 
-# ----------------------------------------------------
 # 70 / 15 / 15 split within each quartile
-# ----------------------------------------------------
 
 for q in sorted(split_df["quartile"].unique()):
 
@@ -375,9 +339,7 @@ test_idx = torch.tensor(
     dtype=torch.long
 )
 
-# ----------------------------------------------------
 # Masks
-# ----------------------------------------------------
 
 train_mask = torch.zeros(
     len(nodes),
@@ -402,9 +364,7 @@ print("Train:", train_mask.sum().item())
 print("Val  :", val_mask.sum().item())
 print("Test :", test_mask.sum().item())
 
-# ----------------------------------------------------
 # Sanity Checks
-# ----------------------------------------------------
 
 assert (
     train_mask.sum()
@@ -425,19 +385,15 @@ assert not torch.any(
     val_mask & test_mask
 ), "Validation and test overlap."
 
-print("✓ Split integrity checks passed.")
+print("Split integrity checks passed.")
 
-# ====================================================
 # Leakage-Free Feature Scaling
-# ====================================================
 
 print("\nScaling features...")
 
 scaler = StandardScaler()
 
-# ----------------------------------------------------
 # Fit ONLY on training nodes
-# ----------------------------------------------------
 
 scaler.fit(
     X_raw[
@@ -445,9 +401,7 @@ scaler.fit(
     ]
 )
 
-# ----------------------------------------------------
 # Transform ALL nodes
-# ----------------------------------------------------
 
 X_scaled = scaler.transform(
     X_raw
@@ -455,9 +409,7 @@ X_scaled = scaler.transform(
 
 print("Scaled Feature Shape:", X_scaled.shape)
 
-# ----------------------------------------------------
 # Scaling Sanity Check
-# ----------------------------------------------------
 
 train_scaled = X_scaled[
     train_idx.numpy()
@@ -482,13 +434,11 @@ print(
 )
 
 print(
-    "\n✓ Features scaled using "
+    "\nFeatures scaled using "
     "train nodes only."
 )
 
-# ====================================================
 # Build PyG Data Object
-# ====================================================
 
 print("\nBuilding PyG Data object...")
 
@@ -501,35 +451,27 @@ data = Data(
     edge_attr=edge_attr,
 )
 
-# ----------------------------------------------------
 # Labels
-# ----------------------------------------------------
 
 data.y_ic = y_ic.float()
 data.y_lt = y_lt.float()
 
-# ----------------------------------------------------
 # Masks
-# ----------------------------------------------------
 
 data.train_mask = train_mask
 data.val_mask = val_mask
 data.test_mask = test_mask
 
-# ----------------------------------------------------
 # Original Higgs Node IDs
-# ----------------------------------------------------
 
 data.node_ids = torch.tensor(
     nodes,
     dtype=torch.long
 )
 
-# ====================================================
 # Final Dataset Sanity Checks
-# ====================================================
 
-print("\nRunning dataset sanity checks...")
+print("\nRunning dataset sanity checks")
 
 # Number of nodes
 assert data.num_nodes == len(nodes), (
@@ -576,11 +518,9 @@ assert (
     "Split coverage mismatch."
 )
 
-print("✓ Dataset sanity checks passed.")
+print("Dataset sanity checks passed.")
 
-# ====================================================
 # Save Dataset
-# ====================================================
 
 print("\nSaving dataset...")
 
@@ -592,9 +532,7 @@ torch.save(
 print("Saved:")
 print(OUTPUT_PATH)
 
-# ====================================================
 # Save Splits
-# ====================================================
 
 torch.save(
     {
@@ -608,13 +546,10 @@ torch.save(
 print("\nSaved:")
 print(SPLIT_PATH)
 
-# ====================================================
 # Final Summary
-# ====================================================
 
-print("\n" + "=" * 70)
-print("PROJECT_HAIL – FINAL DATASET SUMMARY")
-print("=" * 70)
+
+print("FINAL DATASET:")
 
 print("Nodes           :", data.num_nodes)
 print("Edges           :", data.edge_index.shape[1])
@@ -663,9 +598,4 @@ print(
 
 print("\nPyG Object")
 print(data)
-
-print("\n Step 7 FINALIZED.")
-print(" Leakage-free scaling confirmed.")
-print(" Stratified splits confirmed.")
-print(" Edge synchronization confirmed.")
 print(" Dataset saved successfully.")

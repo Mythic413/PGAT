@@ -6,31 +6,22 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-# ============================================================
-# PROJECT_HAIL – Try2
-# Step 6b: IC Label Generation
-# ============================================================
-#
+# IC Label Generation
 # Objective:
-# Generate leakage-free IC labels using the canonical
+# Generate leakage-free IC labels using canonical
 # Independent Cascade model and the finalized
 # Weighted Cascade probabilities from Step 5.
-#
 # Method:
 # - Weighted Cascade probabilities from Step 5
 # - Standard Independent Cascade diffusion
 # - Monte Carlo estimation of expected spread
 # - Degree-stratified node selection
-#
 # Outputs:
 # Try2/data/ic_labels.csv
-#
 # Columns:
 # node
 # ic_mean
 # ic_std
-#
-# ============================================================
 
 MC_RUNS = 200
 NUM_LABELS = 1000
@@ -39,12 +30,9 @@ SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
 
-print("PROJECT_HAIL – Try2")
-print("Step 6b: IC Label Generation")
+print("IC Label Generation")
 
-# ------------------------------------------------------------
 # Paths
-# ------------------------------------------------------------
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
@@ -54,9 +42,7 @@ GRAPH_PATH = DATA_DIR / "higgs_5000.edgelist"
 EDGE_PROB_PATH = DATA_DIR / "edge_probabilities.csv"
 OUTPUT_PATH = DATA_DIR / "ic_labels.csv"
 
-# ------------------------------------------------------------
 # Load graph
-# ------------------------------------------------------------
 
 print("\nLoading graph...")
 
@@ -69,9 +55,7 @@ G = nx.read_edgelist(
 print(f"Nodes: {G.number_of_nodes():,}")
 print(f"Edges: {G.number_of_edges():,}")
 
-# ------------------------------------------------------------
 # Load edge probabilities
-# ------------------------------------------------------------
 
 print("\nLoading edge probabilities...")
 
@@ -79,18 +63,14 @@ edge_df = pd.read_csv(EDGE_PROB_PATH)
 
 print(f"Edge probabilities: {len(edge_df):,}")
 
-# ------------------------------------------------------------
 # Attach probabilities to graph
-# ------------------------------------------------------------
 
 print("\nAttaching probabilities to graph...")
 
 for row in edge_df.itertuples(index=False):
     G[row.src][row.dst]["p"] = row.probability
 
-# ------------------------------------------------------------
 # Degree-stratified node selection
-# ------------------------------------------------------------
 
 print("\nBuilding degree quartiles...")
 
@@ -130,9 +110,7 @@ selected = sorted(selected)
 
 print(f"Labeled nodes: {len(selected)}")
 
-# ------------------------------------------------------------
 # Save shared labeled nodes
-# ------------------------------------------------------------
 
 labeled_nodes_path = DATA_DIR / "labeled_nodes.csv"
 
@@ -146,9 +124,7 @@ pd.DataFrame({
 print("\nSaved shared labeled nodes:")
 print(labeled_nodes_path)
 
-# ------------------------------------------------------------
 # Independent Cascade simulator
-# ------------------------------------------------------------
 
 def run_ic(seed_node):
 
@@ -177,11 +153,9 @@ def run_ic(seed_node):
 
     return len(activated)
 
-# ------------------------------------------------------------
 # Generate labels
-# ------------------------------------------------------------
 
-print("\nGenerating IC labels...")
+print("\nGenerating IC labels")
 
 rows = []
 
@@ -212,9 +186,7 @@ labels = pd.DataFrame(
     ]
 )
 
-# ------------------------------------------------------------
 # Statistics
-# ------------------------------------------------------------
 
 print("\nIC Mean Statistics:")
 print(labels["ic_mean"].describe())
@@ -222,9 +194,7 @@ print(labels["ic_mean"].describe())
 print("\nIC Std Statistics:")
 print(labels["ic_std"].describe())
 
-# ------------------------------------------------------------
 # Save
-# ------------------------------------------------------------
 
 OUTPUT_PATH.parent.mkdir(
     parents=True,
@@ -241,6 +211,4 @@ print(OUTPUT_PATH)
 
 print("\nOutput Shape:")
 print(labels.shape)
-
-print("\nStep 6aComplete.")
 print("IC labels finalized.")
